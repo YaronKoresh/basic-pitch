@@ -17,7 +17,7 @@
 
 from typing import Any, Callable, Optional
 import tensorflow as tf
-from basic_pitch.layers.math import log_base_b
+from basic_pitch.math import log_base_b
 
 
 class Stft(tf.keras.layers.Layer):

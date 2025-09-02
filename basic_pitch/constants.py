@@ -19,24 +19,21 @@ import numpy as np
 
 from enum import Enum
 
-
-SEMITONES_PER_OCTAVE = 12  # for frequency bin calculations
-
 FFT_HOP = 256
 N_FFT = 8 * FFT_HOP
 
-NOTES_BINS_PER_SEMITONE = 1
-CONTOURS_BINS_PER_SEMITONE = 3
+NOTES_BINS_PER_SEMITONE = 100
+CONTOURS_BINS_PER_SEMITONE = 300
 # base frequency of the CENTRAL bin of the first semitone (i.e., the
 # second bin if annotations_bins_per_semitone is 3)
 ANNOTATIONS_BASE_FREQUENCY = 27.5  # lowest key on a piano
 ANNOTATIONS_N_SEMITONES = 88  # number of piano keys
-AUDIO_SAMPLE_RATE = 22050
-AUDIO_N_CHANNELS = 1
+AUDIO_SAMPLE_RATE = 44100
+AUDIO_N_CHANNELS = 2
 N_FREQ_BINS_NOTES = ANNOTATIONS_N_SEMITONES * NOTES_BINS_PER_SEMITONE
 N_FREQ_BINS_CONTOURS = ANNOTATIONS_N_SEMITONES * CONTOURS_BINS_PER_SEMITONE
 
-AUDIO_WINDOW_LENGTH = 2  # duration in seconds of training examples - original 1
+AUDIO_WINDOW_LENGTH = 1  # duration in seconds of training examples - original 1
 
 ANNOTATIONS_FPS = AUDIO_SAMPLE_RATE // FFT_HOP
 ANNOTATION_HOP = 1.0 / ANNOTATIONS_FPS
@@ -57,7 +54,7 @@ DATASET_SAMPLING_FREQUENCY = {
 
 
 def _freq_bins(bins_per_semitone: int, base_frequency: float, n_semitones: int) -> np.array:
-    d = 2.0 ** (1.0 / (SEMITONES_PER_OCTAVE * bins_per_semitone))
+    d = 2.0 ** (1.0 / (12 * bins_per_semitone))
     bin_freqs = base_frequency * d ** np.arange(bins_per_semitone * n_semitones)
     return bin_freqs
 

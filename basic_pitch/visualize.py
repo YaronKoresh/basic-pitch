@@ -50,7 +50,6 @@ TIMES = librosa.core.frames_to_time(
     hop_length=AUDIO_SAMPLE_RATE // ANNOTATIONS_FPS,
 )
 
-
 def get_input_model() -> tf.keras.Model:
     """define a model that generates the CQT (Constant-Q Transform) of input audio"""
     inputs = tf.keras.Input(shape=(AUDIO_N_SAMPLES, 1))  # (batch, time, ch)
@@ -59,9 +58,7 @@ def get_input_model() -> tf.keras.Model:
     model.compile()
     return model
 
-
 INPUT_MODEL = get_input_model()
-
 
 def visualize_transcription(
     file_writer: tf.summary.SummaryWriter,

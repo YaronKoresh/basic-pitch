@@ -20,7 +20,7 @@ import numpy as np
 import tensorflow as tf
 
 from basic_pitch import nn
-from basic_pitch.constants import (
+from .constants import (
     ANNOTATIONS_BASE_FREQUENCY,
     ANNOTATIONS_N_SEMITONES,
     AUDIO_N_SAMPLES,
@@ -34,22 +34,6 @@ from basic_pitch.layers import signal, nnaudio
 tfkl = tf.keras.layers
 
 MAX_N_SEMITONES = int(np.floor(12.0 * np.log2(0.5 * AUDIO_SAMPLE_RATE / ANNOTATIONS_BASE_FREQUENCY)))
-
-DEFAULT_LABEL_SMOOTHING = 0.2
-DEFAULT_POSITIVE_WEIGHT = 0.5
-
-CONTOUR_KERNEL_SIZE_1 = (5, 5)
-CONTOUR_KERNEL_SIZE_2 = (3, 39)  # 3*13
-CONTOUR_KERNEL_SIZE_3 = (5, 5)
-CONTOUR_FILTERS_2 = 8
-
-NOTES_KERNEL_SIZE_1 = (7, 7)
-NOTES_STRIDES_1 = (1, 3)
-NOTES_KERNEL_SIZE_2 = (7, 3)
-
-ONSET_KERNEL_SIZE_1 = (5, 5)
-ONSET_STRIDES_1 = (1, 3)
-ONSET_KERNEL_SIZE_2 = (3, 3)
 
 
 def transcription_loss(y_true: tf.Tensor, y_pred: tf.Tensor, label_smoothing: float) -> tf.Tensor:
@@ -119,11 +103,7 @@ def onset_loss(
     return lambda x, y: transcription_loss(x, y, label_smoothing=label_smoothing)
 
 
-def loss(
-    label_smoothing: float = DEFAULT_LABEL_SMOOTHING,
-    weighted: bool = False,
-    positive_weight: float = DEFAULT_POSITIVE_WEIGHT,
-) -> Dict[str, Any]:
+def loss(label_smoothing: float = 0.2, weighted: bool = False, positive_weight: float = 0.5) -> Dict[str, Any]:
     """Creates a keras-compatible dictionary of loss functions to calculate
     the loss for the contour, note and onset posteriorgrams.
 
@@ -226,7 +206,7 @@ def model(
     # contour layers - fully convolutional
     x_contours = tfkl.Conv2D(
         n_filters_contour,
-        CONTOUR_KERNEL_SIZE_1,
+        (5, 5),
         padding="same",
         kernel_initializer=_initializer(),
         kernel_constraint=_kernel_constraint(),
@@ -236,8 +216,8 @@ def model(
     x_contours = tfkl.ReLU()(x_contours)
 
     x_contours = tfkl.Conv2D(
-        CONTOUR_FILTERS_2,
-        CONTOUR_KERNEL_SIZE_2,
+        8,
+        (3, 3 * 13),
         padding="same",
         kernel_initializer=_initializer(),
         kernel_constraint=_kernel_constraint(),
@@ -250,7 +230,7 @@ def model(
         contour_name = "contour"
         x_contours = tfkl.Conv2D(
             1,
-            CONTOUR_KERNEL_SIZE_3,
+            (5, 5),
             padding="same",
             activation="sigmoid",
             kernel_initializer=_initializer(),
@@ -266,9 +246,9 @@ def model(
 
     x_contours_reduced = tfkl.Conv2D(
         n_filters_notes,
-        NOTES_KERNEL_SIZE_1,
+        (7, 7),
         padding="same",
-        strides=NOTES_STRIDES_1,
+        strides=(1, 3),
         kernel_initializer=_initializer(),
         kernel_constraint=_kernel_constraint(),
     )(x_contours_reduced)
@@ -278,7 +258,7 @@ def model(
     note_name = "note"
     x_notes_pre = tfkl.Conv2D(
         1,
-        NOTES_KERNEL_SIZE_2,
+        (7, 3),
         padding="same",
         kernel_initializer=_initializer(),
         kernel_constraint=_kernel_constraint(),
@@ -291,9 +271,9 @@ def model(
     # onsets - fully convolutional
     x_onset = tfkl.Conv2D(
         n_filters_onsets,
-        ONSET_KERNEL_SIZE_1,
+        (5, 5),
         padding="same",
-        strides=ONSET_STRIDES_1,
+        strides=(1, 3),
         kernel_initializer=_initializer(),
         kernel_constraint=_kernel_constraint(),
     )(x)
@@ -302,7 +282,7 @@ def model(
     x_onset = tfkl.Concatenate(axis=3, name="concat")([x_notes_pre, x_onset])
     x_onset = tfkl.Conv2D(
         1,
-        ONSET_KERNEL_SIZE_2,
+        (3, 3),
         padding="same",
         activation="sigmoid",
         kernel_initializer=_initializer(),

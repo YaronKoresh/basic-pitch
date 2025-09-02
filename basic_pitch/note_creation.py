@@ -42,12 +42,6 @@ SONIFY_FS = 3000
 N_PITCH_BEND_TICKS = 8192
 MAX_FREQ_IDX = 87
 
-DEFAULT_MIN_NOTE_LEN = 11
-ENERGY_TOLERANCE = 11
-MAGIC_ALIGNMENT_OFFSET = 0.0018
-MIDI_VELOCITY_SCALE = 127
-PITCH_BEND_SCALE = 4096
-
 
 def model_output_to_notes(
     output: Dict[str, np.array],
@@ -57,7 +51,7 @@ def model_output_to_notes(
     min_note_len: int = 11,
     min_freq: Optional[float] = None,
     max_freq: Optional[float] = None,
-    include_pitch_bends: bool = True,
+    include_pitch_bends: bool = False,
     multiple_pitch_bends: bool = False,
     melodia_trick: bool = True,
     midi_tempo: float = 120,
@@ -248,7 +242,7 @@ def note_events_to_midi(
     for start_time, end_time, note_number, amplitude, pitch_bend in note_events_with_pitch_bends:
         instrument = instruments[note_number] if multiple_pitch_bends else instruments[0]
         note = pretty_midi.Note(
-            velocity=int(np.round(MIDI_VELOCITY_SCALE * amplitude)),
+            velocity=int(np.round(127 * amplitude)),
             pitch=note_number,
             start=start_time,
             end=end_time,
@@ -257,9 +251,7 @@ def note_events_to_midi(
         if not pitch_bend:
             continue
         pitch_bend_times = np.linspace(start_time, end_time, len(pitch_bend))
-        pitch_bend_midi_ticks = np.round(np.array(pitch_bend) * PITCH_BEND_SCALE / CONTOURS_BINS_PER_SEMITONE).astype(
-            int
-        )
+        pitch_bend_midi_ticks = np.round(np.array(pitch_bend) * 4096 / CONTOURS_BINS_PER_SEMITONE).astype(int)
         # This supports pitch bends up to 2 semitones
         # If we estimate pitch bends above/below 2 semitones, crop them here when adding them to the midi file
         pitch_bend_midi_ticks[pitch_bend_midi_ticks > N_PITCH_BEND_TICKS - 1] = N_PITCH_BEND_TICKS - 1
@@ -272,7 +264,7 @@ def note_events_to_midi(
 
 
 def drop_overlapping_pitch_bends(
-    note_events_with_pitch_bends: List[Tuple[float, float, int, float, Optional[List[int]]]],
+    note_events_with_pitch_bends: List[Tuple[float, float, int, float, Optional[List[int]]]]
 ) -> List[Tuple[float, float, int, float, Optional[List[int]]]]:
     """Drop pitch bends from any notes that overlap in time with another note"""
     note_events = sorted(note_events_with_pitch_bends)
@@ -326,19 +318,14 @@ def constrain_frequency(
        The onset and frame activation matrices, with frequencies outside the min and max
        frequency set to 0.
     """
-    n_freqs = onsets.shape[1]
-    min_freq_idx = 0
-    max_freq_idx = n_freqs
-
-    if min_freq is not None:
-        min_freq_idx = int(np.round(librosa.hz_to_midi(min_freq) - MIDI_OFFSET))
     if max_freq is not None:
         max_freq_idx = int(np.round(librosa.hz_to_midi(max_freq) - MIDI_OFFSET))
-
-    onsets[:, :min_freq_idx] = 0
-    frames[:, :min_freq_idx] = 0
-    onsets[:, max_freq_idx:] = 0
-    frames[:, max_freq_idx:] = 0
+        onsets[:, max_freq_idx:] = 0
+        frames[:, max_freq_idx:] = 0
+    if min_freq is not None:
+        min_freq_idx = int(np.round(librosa.hz_to_midi(min_freq) - MIDI_OFFSET))
+        onsets[:, :min_freq_idx] = 0
+        frames[:, :min_freq_idx] = 0
 
     return onsets, frames
 
@@ -352,7 +339,7 @@ def model_frames_to_time(n_frames: int) -> np.ndarray:
     window_numbers = np.floor(np.arange(n_frames) / ANNOT_N_FRAMES)
     window_offset = (FFT_HOP / AUDIO_SAMPLE_RATE) * (
         ANNOT_N_FRAMES - (AUDIO_N_SAMPLES / FFT_HOP)
-    ) + MAGIC_ALIGNMENT_OFFSET
+    ) + 0.0018  # this is a magic number, but it's needed for this to align properly
     times = original_times - (window_offset * window_numbers)
     return times
 
@@ -367,7 +354,7 @@ def output_to_notes_polyphonic(
     max_freq: Optional[float],
     min_freq: Optional[float],
     melodia_trick: bool = True,
-    energy_tol: int = 11,
+    energy_tol: int = 3,
 ) -> List[Tuple[int, int, int, float]]:
     """Decode raw model output to polyphonic note events
 

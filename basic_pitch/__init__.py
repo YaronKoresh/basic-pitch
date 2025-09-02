@@ -33,20 +33,24 @@ except ImportError:
     )
 
 try:
-    import tflite_runtime.interpreter
+    import tensorflow.lite
 
     TFLITE_PRESENT = True
 except ImportError:
-    TFLITE_PRESENT = False
-    logging.warning(
-        "tflite-runtime is not installed. "
-        "If you plan to use a TFLite Model, "
-        "reinstall basic-pitch with `pip install 'basic-pitch tflite-runtime'` or "
-        "`pip install 'basic-pitch[tf]'"
-    )
+    try:
+        import tflite_runtime.interpreter
+        TFLITE_PRESENT = True
+    except ImportError:
+        TFLITE_PRESENT = False
+        logging.warning(
+            "tflite-runtime is not installed. " +
+            "If you plan to use a TFLite Model, " +
+            "reinstall basic-pitch with `pip install 'basic-pitch tflite-runtime'` or " +
+            "`pip install 'basic-pitch[tf]'"
+        )
 
 try:
-    import onnxruntime
+    import onnx
 
     ONNX_PRESENT = True
 except ImportError:
@@ -70,26 +74,8 @@ except ImportError:
         "reinstall basic-pitch with `pip install 'basic-pitch[tf]'`"
     )
 
-
-class FilenameSuffix(enum.Enum):
-    tf = "nmp"
-    coreml = "nmp.mlpackage"
-    tflite = "nmp.tflite"
-    onnx = "nmp.onnx"
+def build_icassp_2022_model_path() -> pathlib.Path:
+    return f"{pathlib.Path(__file__).parent}/saved_models/icassp_2022/nmp"
 
 
-if TF_PRESENT:
-    _default_model_type = FilenameSuffix.tf
-elif CT_PRESENT:
-    _default_model_type = FilenameSuffix.coreml
-elif TFLITE_PRESENT:
-    _default_model_type = FilenameSuffix.tflite
-elif ONNX_PRESENT:
-    _default_model_type = FilenameSuffix.onnx
-
-
-def build_icassp_2022_model_path(suffix: FilenameSuffix) -> pathlib.Path:
-    return pathlib.Path(__file__).parent / "saved_models/icassp_2022" / suffix.value
-
-
-ICASSP_2022_MODEL_PATH = build_icassp_2022_model_path(_default_model_type)
+ICASSP_2022_MODEL_PATH = build_icassp_2022_model_path()

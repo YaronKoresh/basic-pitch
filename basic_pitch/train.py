@@ -24,10 +24,10 @@ from typing import List
 import numpy as np
 import tensorflow as tf
 
-from basic_pitch import models
-from basic_pitch.callbacks import VisualizeCallback
-from basic_pitch.constants import DATASET_SAMPLING_FREQUENCY
-from basic_pitch.data import tf_example_deserialization
+import .models
+from .callbacks import VisualizeCallback
+from .constants import DATASET_SAMPLING_FREQUENCY
+from .data import tf_example_deserialization
 
 logging.basicConfig(level=logging.INFO)
 

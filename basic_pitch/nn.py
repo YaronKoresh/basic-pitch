@@ -22,8 +22,6 @@ import tensorflow.keras.backend as K
 
 from basic_pitch.layers.math import log_base_b
 
-SEMITONES_PER_OCTAVE = 12
-
 
 class HarmonicStacking(tf.keras.layers.Layer):
     """Harmonic stacking layer
@@ -49,8 +47,7 @@ class HarmonicStacking(tf.keras.layers.Layer):
         self.bins_per_semitone = bins_per_semitone
         self.harmonics = harmonics
         self.shifts = [
-            int(tf.math.round(SEMITONES_PER_OCTAVE * self.bins_per_semitone * log_base_b(float(h), 2)))
-            for h in self.harmonics
+            int(tf.math.round(12.0 * self.bins_per_semitone * log_base_b(float(h), 2))) for h in self.harmonics
         ]
         self.n_output_freqs = n_output_freqs
 
@@ -99,7 +96,7 @@ class FlattenAudioCh(tf.keras.layers.Layer):
         """x: (batch, time, ch)"""
         shapes = K.int_shape(x)
         tf.assert_equal(shapes[2], 1)
-        return tf.squeeze(x, axis=2)
+        return tf.keras.layers.Reshape([shapes[1]])(x)  # ignore batch size
 
 
 class FlattenFreqCh(tf.keras.layers.Layer):
@@ -112,8 +109,4 @@ class FlattenFreqCh(tf.keras.layers.Layer):
 
     def call(self, x: tf.Tensor) -> tf.Tensor:
         shapes = K.int_shape(x)
-        batch_size = tf.shape(x)[0]
-        time_dim = shapes[1]
-        freq_dim = shapes[2]
-        ch_dim = shapes[3]
-        return tf.reshape(x, [batch_size, time_dim, freq_dim * ch_dim])
+        return tf.keras.layers.Reshape([shapes[1], shapes[2] * shapes[3]])(x)  # ignore batch size

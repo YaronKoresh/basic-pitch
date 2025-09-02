@@ -43,6 +43,7 @@ except ImportError:
         import tensorflow.lite as tflite
 
 try:
+    import onnx
     import onnxruntime as ort
 except ImportError:
     pass
@@ -64,7 +65,7 @@ from basic_pitch.commandline_printing import (
     file_saved_confirmation,
     failed_to_save,
 )
-import basic_pitch.note_creation as infer
+from basic_pitch import note_creation as infer
 
 
 class Model:
@@ -76,6 +77,39 @@ class Model:
 
     def __init__(self, model_path: Union[pathlib.Path, str]):
         present = []
+
+        if CT_PRESENT:
+            present.append("CoreML")
+            try:
+                self.model_type = Model.MODEL_TYPES.COREML
+                self.model = ct.models.MLModel(str(model_path)+".mlpackage")
+                return
+            except Exception as e:
+                if str(model_path).endswith(".mlpackage"):
+                    logging.warning(
+                        "Could not load CoreML file %s even "
+                        "though it looks like a CoreML file with error %s. "
+                        "Are you sure it's a CoreML file?",
+                        model_path,
+                        e.__repr__(),
+                    )
+
+        if ONNX_PRESENT:
+            present.append("ONNX")
+            try:
+                self.model_type = Model.MODEL_TYPES.ONNX
+                self.model = ort.InferenceSession(str(model_path)+".onnx")
+                return
+            except Exception as e:
+                if str(model_path).endswith(".onnx"):
+                    logging.warning(
+                        "Could not load ONNX file %s even "
+                        "though it looks like a ONNX file with error %s. "
+                        "Are you sure it's a ONNX file?",
+                        model_path,
+                        e.__repr__(),
+                    )
+
         if TF_PRESENT:
             present.append("TensorFlow")
             try:
@@ -92,27 +126,11 @@ class Model:
                         e.__repr__(),
                     )
 
-        if CT_PRESENT:
-            present.append("CoreML")
-            try:
-                self.model_type = Model.MODEL_TYPES.COREML
-                self.model = ct.models.MLModel(str(model_path), compute_units=ct.ComputeUnit.CPU_ONLY)
-                return
-            except Exception as e:
-                if str(model_path).endswith(".mlpackage"):
-                    logging.warning(
-                        "Could not load CoreML file %s even "
-                        "though it looks like a CoreML file with error %s. "
-                        "Are you sure it's a CoreML file?",
-                        model_path,
-                        e.__repr__(),
-                    )
-
         if TFLITE_PRESENT or TF_PRESENT:
             present.append("TensorFlowLite")
             try:
                 self.model_type = Model.MODEL_TYPES.TFLITE
-                self.interpreter = tflite.Interpreter(str(model_path))
+                self.interpreter = tflite.Interpreter(str(model_path)+".tflite")
                 self.model = self.interpreter.get_signature_runner()
                 return
             except Exception as e:
@@ -121,25 +139,6 @@ class Model:
                         "Could not load TensorFlowLite file %s even "
                         "though it looks like a TFLite file with error %s. "
                         "Are you sure it's a TFLite file?",
-                        model_path,
-                        e.__repr__(),
-                    )
-
-        if ONNX_PRESENT:
-            present.append("ONNX")
-            try:
-                self.model_type = Model.MODEL_TYPES.ONNX
-                providers = ["CPUExecutionProvider"]
-                if "CUDAExecutionProvider" in ort.get_available_providers():
-                    providers.insert(0, "CUDAExecutionProvider")
-                self.model = ort.InferenceSession(str(model_path), providers=providers)
-                return
-            except Exception as e:
-                if str(model_path).endswith(".onnx"):
-                    logging.warning(
-                        "Could not load ONNX file %s even "
-                        "though it looks like a ONNX file with error %s. "
-                        "Are you sure it's a ONNX file?",
                         model_path,
                         e.__repr__(),
                     )
@@ -156,6 +155,9 @@ class Model:
         if self.model_type == Model.MODEL_TYPES.TENSORFLOW:
             return {k: v.numpy() for k, v in cast(tf.keras.Model, self.model(x)).items()}
         elif self.model_type == Model.MODEL_TYPES.COREML:
+            print(f"isfinite: {np.all(np.isfinite(x))}", flush=True)
+            print(f"shape: {x.shape}", flush=True)
+            print(f"dtype: {x.dtype}", flush=True)
             result = cast(ct.models.MLModel, self.model).predict({"input_2": x})
             return {
                 "note": result["Identity_1"],
@@ -179,15 +181,6 @@ class Model:
                     ),
                 )
             }
-
-
-DEFAULT_ONSET_THRESHOLD = 0.5
-DEFAULT_FRAME_THRESHOLD = 0.3
-DEFAULT_MINIMUM_NOTE_LENGTH_MS = 127.7
-DEFAULT_MINIMUM_MIDI_TEMPO = 120
-DEFAULT_SONIFICATION_SAMPLERATE = 44100
-DEFAULT_OVERLAPPING_FRAMES = 30
-DEFAULT_MIDI_VELOCITY_SCALE = 127
 
 
 def window_audio_file(
@@ -293,7 +286,7 @@ def run_inference(
         model = Model(model_or_model_path)
 
     # overlap 30 frames
-    n_overlapping_frames = DEFAULT_OVERLAPPING_FRAMES
+    n_overlapping_frames = 30
     overlap_len = n_overlapping_frames * FFT_HOP
     hop_size = AUDIO_N_SAMPLES - overlap_len
 
@@ -414,7 +407,7 @@ def save_note_events(
         writer = csv.writer(fhandle, delimiter=",")
         writer.writerow(["start_time_s", "end_time_s", "pitch_midi", "velocity", "pitch_bend"])
         for start_time, end_time, note_number, amplitude, pitch_bend in note_events:
-            row = [start_time, end_time, note_number, int(np.round(DEFAULT_MIDI_VELOCITY_SCALE * amplitude))]
+            row = [start_time, end_time, note_number, int(np.round(127 * amplitude))]
             if pitch_bend:
                 row.extend(pitch_bend)
             writer.writerow(row)
@@ -423,15 +416,15 @@ def save_note_events(
 def predict(
     audio_path: Union[pathlib.Path, str],
     model_or_model_path: Union[Model, pathlib.Path, str] = ICASSP_2022_MODEL_PATH,
-    onset_threshold: float = DEFAULT_ONSET_THRESHOLD,
-    frame_threshold: float = DEFAULT_FRAME_THRESHOLD,
-    minimum_note_length: float = DEFAULT_MINIMUM_NOTE_LENGTH_MS,
+    onset_threshold: float = 0.5,
+    frame_threshold: float = 0.3,
+    minimum_note_length: float = 127.70,
     minimum_frequency: Optional[float] = None,
     maximum_frequency: Optional[float] = None,
     multiple_pitch_bends: bool = False,
     melodia_trick: bool = True,
     debug_file: Optional[pathlib.Path] = None,
-    midi_tempo: float = DEFAULT_MINIMUM_MIDI_TEMPO,
+    midi_tempo: float = 120,
 ) -> Tuple[
     Dict[str, np.array],
     pretty_midi.PrettyMIDI,
@@ -506,16 +499,16 @@ def predict_and_save(
     save_model_outputs: bool,
     save_notes: bool,
     model_or_model_path: Union[Model, str, pathlib.Path],
-    onset_threshold: float = DEFAULT_ONSET_THRESHOLD,
-    frame_threshold: float = DEFAULT_FRAME_THRESHOLD,
-    minimum_note_length: float = DEFAULT_MINIMUM_NOTE_LENGTH_MS,
+    onset_threshold: float = 0.5,
+    frame_threshold: float = 0.3,
+    minimum_note_length: float = 127.70,
     minimum_frequency: Optional[float] = None,
     maximum_frequency: Optional[float] = None,
     multiple_pitch_bends: bool = False,
     melodia_trick: bool = True,
     debug_file: Optional[pathlib.Path] = None,
-    sonification_samplerate: int = DEFAULT_SONIFICATION_SAMPLERATE,
-    midi_tempo: float = DEFAULT_MINIMUM_MIDI_TEMPO,
+    sonification_samplerate: int = 44100,
+    midi_tempo: float = 120,
 ) -> None:
     """Make a prediction and save the results to file.
 
