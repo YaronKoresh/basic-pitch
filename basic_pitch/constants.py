@@ -19,11 +19,11 @@ import numpy as np
 
 from enum import Enum
 
-FFT_HOP = 256
+FFT_HOP = 128
 N_FFT = 8 * FFT_HOP
 
-NOTES_BINS_PER_SEMITONE = 100
-CONTOURS_BINS_PER_SEMITONE = 300
+NOTES_BINS_PER_SEMITONE = 1
+CONTOURS_BINS_PER_SEMITONE = 3
 # base frequency of the CENTRAL bin of the first semitone (i.e., the
 # second bin if annotations_bins_per_semitone is 3)
 ANNOTATIONS_BASE_FREQUENCY = 27.5  # lowest key on a piano
@@ -33,7 +33,7 @@ AUDIO_N_CHANNELS = 2
 N_FREQ_BINS_NOTES = ANNOTATIONS_N_SEMITONES * NOTES_BINS_PER_SEMITONE
 N_FREQ_BINS_CONTOURS = ANNOTATIONS_N_SEMITONES * CONTOURS_BINS_PER_SEMITONE
 
-AUDIO_WINDOW_LENGTH = 1  # duration in seconds of training examples - original 1
+AUDIO_WINDOW_LENGTH = 4  # duration in seconds of training examples
 
 ANNOTATIONS_FPS = AUDIO_SAMPLE_RATE // FFT_HOP
 ANNOTATION_HOP = 1.0 / ANNOTATIONS_FPS
