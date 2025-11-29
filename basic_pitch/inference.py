@@ -196,7 +196,7 @@ def window_audio_file(
         window_times: list of {'start':.., 'end':...} objects (times in seconds)
 
     """
-    for i in range(0, int(audio_original.shape[0]), hop_size):
+    for i in range(0, audio_original.shape[0], hop_size):
         window = audio_original[i : i + AUDIO_N_SAMPLES]
         if len(window) < AUDIO_N_SAMPLES:
             window = np.pad(
@@ -288,7 +288,7 @@ def run_inference(
     # overlap 30 frames
     n_overlapping_frames = 30
     overlap_len = n_overlapping_frames * FFT_HOP
-    hop_size = AUDIO_N_SAMPLES - overlap_len
+    hop_size = int(AUDIO_N_SAMPLES - overlap_len)
 
     output: Dict[str, Any] = {"note": [], "onset": [], "contour": []}
     for audio_windowed, _, audio_original_length in get_audio_input(audio_path, overlap_len, hop_size):
