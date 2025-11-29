@@ -196,7 +196,7 @@ def window_audio_file(
         window_times: list of {'start':.., 'end':...} objects (times in seconds)
 
     """
-    for i in range(0, audio_original.shape[0], hop_size):
+    for i in range(0, int(audio_original.shape[0]), hop_size):
         window = audio_original[i : i + AUDIO_N_SAMPLES]
         if len(window) < AUDIO_N_SAMPLES:
             window = np.pad(
