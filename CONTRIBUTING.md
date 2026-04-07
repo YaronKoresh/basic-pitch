@@ -6,6 +6,8 @@ Basic Pitch welcomes your contributions!
 
 To get your environment set up to build `basic-pitch`, you'll need Python and Pip installed on your machine.
 
+`basic-pitch` currently supports Python 3.8 through 3.12.
+
 We recommend first installing the following non-python dependencies:
 
 - [libsndfile](http://libsndfile.github.io/libsndfile/) is a C library for reading and writing files containing sampled sound through one standard library interface.
@@ -15,9 +17,9 @@ We recommend first installing the following non-python dependencies:
 - [ffmpeg](https://ffmpeg.org/) is a complete, cross-platform solution to record, convert and stream audio in all `basic-pitch` supported formats
 - [sox](https://sourceforge.net/projects/sox/) is a general purpose sound processing utility library used to process and transform training data used for training the `basic-pitch` model. 
 
-To compile a debug build of `basic-pitch` that allows using a debugger (like gdb or lldb), use the following command to build the package locally and install a symbolic link for debugging:
+To install the project in editable mode with the full contributor toolchain, run:
 ```shell
-python3 setup.py build develop
+python -m pip install -e .[dev]
 ```
 
 Then, you can `import basic_pitch` from Python (or run the tests with `tox`) to test out your local changes.
@@ -40,12 +42,12 @@ We follow the [GitHub Flow Workflow](https://guides.github.com/introduction/flow
 We use `tox` for testing - running tests from end-to-end should be as simple as:
 
 ```
-tox
+python -m tox
 ```
 
 ## Style
 
-Use `black` with defaults for Python code.
+Use `black` with a line length of 120 for Python code.
 
 ## Issues
 

@@ -26,6 +26,7 @@ import apache_beam as beam
 import mirdata
 
 from basic_pitch.data import commandline, pipeline
+from basic_pitch.data.datasets.mirdata_compat import copy_remote_file, get_mirdata_track_ids
 
 
 class MedleyDbPitchInvalidTracks(beam.DoFn):
@@ -65,7 +66,7 @@ class MedleyDbPitchToTfExample(beam.DoFn):
             N_FREQ_BINS_NOTES,
             N_FREQ_BINS_CONTOURS,
         )
-        from basic_pitch.dataset import tf_example_serialization
+        from basic_pitch.data import tf_example_serialization
 
         logging.info(f"Processing {element}")
         batch = []
@@ -80,9 +81,7 @@ class MedleyDbPitchToTfExample(beam.DoFn):
                 for attr in self.DOWNLOAD_ATTRIBUTES:
                     source = getattr(track_remote, attr)
                     dest = getattr(track_local, attr)
-                    os.makedirs(os.path.dirname(dest), exist_ok=True)
-                    with self.filesystem.open(source) as s, open(dest, "wb") as d:
-                        d.write(s.read())
+                    copy_remote_file(self.filesystem, source, dest)
 
                 # will be in temp dir and get cleaned up
                 local_wav_path = "{}_tmp.wav".format(track_local.audio_path)
@@ -140,7 +139,7 @@ def create_input_data(train_percent: float, seed: Optional[int] = None) -> List[
         random.seed(seed)
 
     medleydb_pitch = mirdata.initialize("medleydb_pitch")
-    track_ids = medleydb_pitch.track_ids
+    track_ids = get_mirdata_track_ids(medleydb_pitch)
     random.shuffle(track_ids)
 
     def determine_split(index: int) -> str:

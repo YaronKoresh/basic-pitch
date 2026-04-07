@@ -17,11 +17,12 @@
 
 import pathlib
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import Any, DefaultDict, Dict, List, Optional, Tuple, Union
 import mir_eval
 import librosa
 import resampy
 import numpy as np
+import numpy.typing as npt
 import pretty_midi
 import scipy
 from scipy.io import wavfile
@@ -44,14 +45,14 @@ MAX_FREQ_IDX = 87
 
 
 def model_output_to_notes(
-    output: Dict[str, np.array],
+    output: Dict[str, npt.NDArray[Any]],
     onset_thresh: float,
     frame_thresh: float,
     infer_onsets: bool = True,
     min_note_len: int = 11,
     min_freq: Optional[float] = None,
     max_freq: Optional[float] = None,
-    include_pitch_bends: bool = False,
+    include_pitch_bends: bool = True,
     multiple_pitch_bends: bool = False,
     melodia_trick: bool = True,
     midi_tempo: float = 120,
@@ -123,8 +124,8 @@ def sonify_midi(midi: pretty_midi.PrettyMIDI, save_path: Union[pathlib.Path, str
 
 
 def sonify_salience(
-    gram: np.array, semitone_resolution: float, save_path: Optional[str] = None, thresh: float = 0.2
-) -> Tuple[np.array, int]:
+    gram: npt.NDArray[Any], semitone_resolution: float, save_path: Optional[str] = None, thresh: float = 0.2
+) -> Tuple[npt.NDArray[Any], int]:
     """Sonify a salience matrix.
 
     Args:
@@ -137,7 +138,7 @@ def sonify_salience(
     Returns:
         A tuple of the sonified salience as an audio signal and the associated sample rate.
     """
-    freqs = librosa.core.cqt_frequencies(
+    freqs = librosa.cqt_frequencies(
         n_bins=ANNOTATIONS_N_SEMITONES * semitone_resolution,
         fmin=ANNOTATIONS_BASE_FREQUENCY,
         bins_per_octave=12 * semitone_resolution,
@@ -145,7 +146,7 @@ def sonify_salience(
     # this function is slow - for speed, only sonify frequencies below
     # sonify_fs/2 Hz (e.g. 1000 Hz)
     max_freq_idx = np.where(freqs > SONIFY_FS / 2)[0][0]
-    times = librosa.core.frames_to_time(
+    times = librosa.frames_to_time(
         np.arange(gram.shape[1]),
         sr=AUDIO_SAMPLE_RATE,
         hop_length=AUDIO_N_SAMPLES / ANNOT_N_FRAMES,  # THIS IS THE CORRECT HOP!!
@@ -159,7 +160,7 @@ def sonify_salience(
     return y, SONIFY_FS
 
 
-def midi_pitch_to_contour_bin(pitch_midi: int) -> np.array:
+def midi_pitch_to_contour_bin(pitch_midi: int) -> float:
     """Convert midi pitch to conrresponding index in contour matrix
 
     Args:
@@ -278,7 +279,7 @@ def drop_overlapping_pitch_bends(
     return note_events
 
 
-def get_infered_onsets(onsets: np.array, frames: np.array, n_diff: int = 2) -> np.array:
+def get_infered_onsets(onsets: npt.NDArray[Any], frames: npt.NDArray[Any], n_diff: int = 2) -> npt.NDArray[Any]:
     """Infer onsets from large changes in frame amplitudes.
 
     Args:
@@ -304,8 +305,8 @@ def get_infered_onsets(onsets: np.array, frames: np.array, n_diff: int = 2) -> n
 
 
 def constrain_frequency(
-    onsets: np.array, frames: np.array, max_freq: Optional[float], min_freq: Optional[float]
-) -> Tuple[np.array, np.array]:
+    onsets: npt.NDArray[Any], frames: npt.NDArray[Any], max_freq: Optional[float], min_freq: Optional[float]
+) -> Tuple[npt.NDArray[Any], npt.NDArray[Any]]:
     """Zero out activations above or below the max/min frequencies
 
     Args:
@@ -331,7 +332,7 @@ def constrain_frequency(
 
 
 def model_frames_to_time(n_frames: int) -> np.ndarray:
-    original_times = librosa.core.frames_to_time(
+    original_times = librosa.frames_to_time(
         np.arange(n_frames),
         sr=AUDIO_SAMPLE_RATE,
         hop_length=FFT_HOP,
@@ -345,8 +346,8 @@ def model_frames_to_time(n_frames: int) -> np.ndarray:
 
 
 def output_to_notes_polyphonic(
-    frames: np.array,
-    onsets: np.array,
+    frames: npt.NDArray[Any],
+    onsets: npt.NDArray[Any],
     onset_thresh: float,
     frame_thresh: float,
     min_note_len: int,
@@ -354,7 +355,7 @@ def output_to_notes_polyphonic(
     max_freq: Optional[float],
     min_freq: Optional[float],
     melodia_trick: bool = True,
-    energy_tol: int = 3,
+    energy_tol: int = 11,
 ) -> List[Tuple[int, int, int, float]]:
     """Decode raw model output to polyphonic note events
 

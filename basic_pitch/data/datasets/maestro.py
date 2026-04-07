@@ -21,22 +21,13 @@ import os
 import sys
 import tempfile
 import time
-from typing import Any, Dict, List, TextIO, Tuple
+from typing import Any, Dict, List, Tuple
 
 import apache_beam as beam
 import mirdata
 
 from basic_pitch.data import commandline, pipeline
-
-
-def read_in_chunks(file_object: TextIO, chunk_size: int = 1024) -> Any:
-    """Lazy function (generator) to read a file piece by piece.
-    Default chunk size: 1k."""
-    while True:
-        data = file_object.read(chunk_size)
-        if not data:
-            break
-        yield data
+from basic_pitch.data.datasets.mirdata_compat import copy_remote_file, load_maestro_input_data
 
 
 class MaestroInvalidTracks(beam.DoFn):
@@ -66,10 +57,7 @@ class MaestroInvalidTracks(beam.DoFn):
             for attribute in self.DOWNLOAD_ATTRIBUTES:
                 source = getattr(track_remote, attribute)
                 destination = getattr(track_local, attribute)
-                os.makedirs(os.path.dirname(destination), exist_ok=True)
-                with self.filesystem.open(source) as s, open(destination, "wb") as d:
-                    for piece in read_in_chunks(s):
-                        d.write(piece)
+                copy_remote_file(self.filesystem, source, destination)
 
             # 15 minutes * 60 seconds/minute
             if sox.file_info.duration(track_local.audio_path) >= 15 * 60:
@@ -125,11 +113,7 @@ class MaestroToTfExample(beam.DoFn):
                 for attribute in self.DOWNLOAD_ATTRIBUTES:
                     source = getattr(track_remote, attribute)
                     destination = getattr(track_local, attribute)
-                    os.makedirs(os.path.dirname(destination), exist_ok=True)
-                    with self.filesystem.open(source) as s, open(destination, "wb") as d:
-                        # d.write(s.read())
-                        for piece in read_in_chunks(s):
-                            d.write(piece)
+                    copy_remote_file(self.filesystem, source, destination)
 
                 local_wav_path = f"{track_local.audio_path}_tmp.wav"
 
@@ -172,16 +156,7 @@ def create_input_data(source: str) -> List[Tuple[str, str]]:
     import apache_beam as beam
 
     filesystem = beam.io.filesystems.FileSystems()
-
-    with tempfile.TemporaryDirectory() as tmpdir:
-        maestro = mirdata.initialize("maestro", data_home=tmpdir)
-        metadata_path = maestro._index["metadata"]["maestro-v2.0.0"][0]
-        with filesystem.open(
-            os.path.join(source, metadata_path),
-        ) as s, open(os.path.join(tmpdir, metadata_path), "wb") as d:
-            d.write(s.read())
-
-        return [(track_id, track.split) for track_id, track in maestro.load_tracks().items()]
+    return load_maestro_input_data(filesystem, source)
 
 
 def main(known_args: argparse.Namespace, pipeline_args: List[str]) -> None:

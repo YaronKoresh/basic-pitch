@@ -27,6 +27,7 @@ import apache_beam as beam
 import mirdata
 
 from basic_pitch.data import commandline, pipeline
+from basic_pitch.data.datasets.mirdata_compat import copy_remote_file, get_mirdata_track_ids
 
 
 class GuitarSetInvalidTracks(beam.DoFn):
@@ -81,9 +82,7 @@ class GuitarSetToTfExample(beam.DoFn):
                 for attribute in self.DOWNLOAD_ATTRIBUTES:
                     source = getattr(track_remote, attribute)
                     destination = getattr(track_local, attribute)
-                    os.makedirs(os.path.dirname(destination), exist_ok=True)
-                    with self.filesystem.open(source) as s, open(destination, "wb") as d:
-                        d.write(s.read())
+                    copy_remote_file(self.filesystem, source, destination)
 
                 local_wav_path = f"{track_local.audio_mic_path}_tmp.wav"
 
@@ -144,7 +143,7 @@ def create_input_data(
             return "test"
 
     guitarset = mirdata.initialize("guitarset")
-    track_ids = guitarset.track_ids
+    track_ids = get_mirdata_track_ids(guitarset)
     random.shuffle(track_ids)
 
     return [(track_id, determine_split(i)) for i, track_id in enumerate(track_ids)]

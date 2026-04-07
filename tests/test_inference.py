@@ -19,6 +19,7 @@ import faulthandler
 import os
 import pathlib
 import tempfile
+import types
 from typing import Dict, List
 
 import librosa
@@ -26,7 +27,7 @@ import pretty_midi
 import numpy as np
 import numpy.typing as npt
 
-from basic_pitch import ICASSP_2022_MODEL_PATH, inference
+from basic_pitch import ICASSP_2022_MODEL_PATH, FilenameSuffix, build_icassp_2022_model_path, inference
 from basic_pitch.constants import (
     AUDIO_SAMPLE_RATE,
     AUDIO_N_SAMPLES,
@@ -66,6 +67,56 @@ def test_predict() -> None:
     for expected, calculated in zip(expected_note_events, note_events):
         for i in range(len(expected)):
             np.testing.assert_allclose(expected[i], calculated[i], atol=1e-4, rtol=0)
+
+
+def test_build_icassp_2022_model_path() -> None:
+    assert build_icassp_2022_model_path() == ICASSP_2022_MODEL_PATH
+    assert build_icassp_2022_model_path(FilenameSuffix.onnx).suffix == ".onnx"
+    assert build_icassp_2022_model_path(FilenameSuffix.tflite).suffix == ".tflite"
+    assert build_icassp_2022_model_path(FilenameSuffix.coreml).suffix == ".mlpackage"
+
+
+def test_model_accepts_explicit_serialized_onnx_path(tmp_path: pathlib.Path, monkeypatch) -> None:
+    model_path = tmp_path / "test-model.onnx"
+    model_path.write_bytes(b"")
+    loaded_path: Dict[str, str] = {}
+
+    class FakeSession:
+        def __init__(self, path: str) -> None:
+            loaded_path["path"] = path
+
+    monkeypatch.setattr(inference, "CT_PRESENT", False)
+    monkeypatch.setattr(inference, "TF_PRESENT", False)
+    monkeypatch.setattr(inference, "TFLITE_PRESENT", False)
+    monkeypatch.setattr(inference, "ONNX_PRESENT", True)
+    monkeypatch.setattr(inference, "ort", types.SimpleNamespace(InferenceSession=FakeSession), raising=False)
+
+    model = inference.Model(model_path)
+
+    assert model.model_type == inference.Model.MODEL_TYPES.ONNX
+    assert loaded_path["path"] == str(model_path)
+
+
+def test_model_resolves_base_onnx_path(tmp_path: pathlib.Path, monkeypatch) -> None:
+    model_path = tmp_path / "test-model"
+    expected_path = tmp_path / "test-model.onnx"
+    expected_path.write_bytes(b"")
+    loaded_path: Dict[str, str] = {}
+
+    class FakeSession:
+        def __init__(self, path: str) -> None:
+            loaded_path["path"] = path
+
+    monkeypatch.setattr(inference, "CT_PRESENT", False)
+    monkeypatch.setattr(inference, "TF_PRESENT", False)
+    monkeypatch.setattr(inference, "TFLITE_PRESENT", False)
+    monkeypatch.setattr(inference, "ONNX_PRESENT", True)
+    monkeypatch.setattr(inference, "ort", types.SimpleNamespace(InferenceSession=FakeSession), raising=False)
+
+    model = inference.Model(model_path)
+
+    assert model.model_type == inference.Model.MODEL_TYPES.ONNX
+    assert loaded_path["path"] == str(expected_path)
 
 
 def test_predict_with_saves() -> None:

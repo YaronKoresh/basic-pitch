@@ -26,6 +26,7 @@ import apache_beam as beam
 import mirdata
 
 from basic_pitch.data import commandline, pipeline
+from basic_pitch.data.datasets.mirdata_compat import copy_remote_file, ensure_mirdata_index, get_mirdata_track_split
 
 
 class SlakhFilterInvalidTracks(beam.DoFn):
@@ -69,9 +70,7 @@ class SlakhFilterInvalidTracks(beam.DoFn):
                 if not dest:
                     return None
                 logging.info(f"Downloading {attr} from {source} to {dest}")
-                os.makedirs(os.path.dirname(dest), exist_ok=True)
-                with self.filesystem.open(source) as s, open(dest, "wb") as d:
-                    d.write(s.read())
+                copy_remote_file(self.filesystem, source, dest)
 
             if track_local.is_drum:
                 return None
@@ -139,9 +138,7 @@ class SlakhToTfExample(beam.DoFn):
                     source = getattr(track_remote, attr)
                     dest = getattr(track_local, attr)
                     logging.info(f"Downloading {attr} from {source} to {dest}")
-                    os.makedirs(os.path.dirname(dest), exist_ok=True)
-                    with self.filesystem.open(source) as s, open(dest, "wb") as d:
-                        d.write(s.read())
+                    copy_remote_file(self.filesystem, source, dest)
 
                 local_wav_path = "{}_tmp.wav".format(track_local.audio_path)
                 ffmpeg.input(track_local.audio_path).output(
@@ -182,7 +179,8 @@ class SlakhToTfExample(beam.DoFn):
 
 def create_input_data() -> List[Tuple[str, str]]:
     slakh = mirdata.initialize("slakh")
-    return [(track_id, track.data_split) for track_id, track in slakh.load_tracks().items()]
+    ensure_mirdata_index(slakh)
+    return [(track_id, get_mirdata_track_split(track)) for track_id, track in slakh.load_tracks().items()]
 
 
 def main(known_args: argparse.Namespace, pipeline_args: List[str]) -> None:

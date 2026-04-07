@@ -36,7 +36,7 @@ from basic_pitch import models
 SONIFY_FS = 3000
 MAX_OUTPUTS = 4
 
-FREQS = librosa.core.cqt_frequencies(
+FREQS = librosa.cqt_frequencies(
     n_bins=ANNOTATIONS_N_SEMITONES * NOTES_BINS_PER_SEMITONE,
     fmin=ANNOTATIONS_BASE_FREQUENCY,
     bins_per_octave=12 * NOTES_BINS_PER_SEMITONE,
@@ -44,7 +44,7 @@ FREQS = librosa.core.cqt_frequencies(
 # this function is slow - for speed, only sonify frequencies below
 # sonify_fs/2 Hz (e.g. 1000 Hz)
 MAX_FREQ_INDEX = np.where(FREQS > SONIFY_FS / 2)[0][0]
-TIMES = librosa.core.frames_to_time(
+TIMES = librosa.frames_to_time(
     np.arange(ANNOT_N_FRAMES),
     sr=AUDIO_SAMPLE_RATE,
     hop_length=AUDIO_SAMPLE_RATE // ANNOTATIONS_FPS,

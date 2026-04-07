@@ -24,27 +24,47 @@ import pathlib
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union, cast
 
 
-from basic_pitch import CT_PRESENT, ICASSP_2022_MODEL_PATH, ONNX_PRESENT, TF_PRESENT, TFLITE_PRESENT
+from basic_pitch import ICASSP_2022_MODEL_PATH
+
+
+ct: Any = None
+ort: Any = None
+tflite: Any = None
+tf: Any = None
+
+TF_PRESENT = False
+
+os.environ.setdefault("TF_USE_LEGACY_KERAS", "1")
 
 try:
     import tensorflow as tf
+    TF_PRESENT = True
 except ImportError:
     pass
+
+CT_PRESENT = False
 
 try:
     import coremltools as ct
+    CT_PRESENT = True
 except ImportError:
     pass
 
+TFLITE_PRESENT = False
+
 try:
     import tflite_runtime.interpreter as tflite
+    TFLITE_PRESENT = True
 except ImportError:
     if TF_PRESENT:
         import tensorflow.lite as tflite
+        TFLITE_PRESENT = True
+
+ONNX_PRESENT = False
 
 try:
-    import onnx
     import onnxruntime as ort
+    ONNX_PRESENT = True
 except ImportError:
     pass
 
@@ -76,73 +96,116 @@ class Model:
         TFLITE = enum.auto()
         ONNX = enum.auto()
 
+    @staticmethod
+    def _requested_model_type(model_path: pathlib.Path) -> Optional["Model.MODEL_TYPES"]:
+        model_path_str = str(model_path)
+        if model_path_str.endswith(".mlpackage"):
+            return Model.MODEL_TYPES.COREML
+        if model_path_str.endswith(".tflite"):
+            return Model.MODEL_TYPES.TFLITE
+        if model_path_str.endswith(".onnx"):
+            return Model.MODEL_TYPES.ONNX
+        return None
+
+    @staticmethod
+    def _resolved_model_path(model_path: pathlib.Path, model_type: "Model.MODEL_TYPES") -> pathlib.Path:
+        suffixes = {
+            Model.MODEL_TYPES.COREML: ".mlpackage",
+            Model.MODEL_TYPES.TFLITE: ".tflite",
+            Model.MODEL_TYPES.ONNX: ".onnx",
+        }
+        suffix = suffixes.get(model_type)
+        if suffix is None or str(model_path).endswith(suffix):
+            return model_path
+        return pathlib.Path(f"{model_path}{suffix}")
+
     def __init__(self, model_path: Union[pathlib.Path, str]):
+        model_path = pathlib.Path(model_path)
         present = []
+        requested_model_type = self._requested_model_type(model_path)
+        model_types = [requested_model_type] if requested_model_type else [
+            Model.MODEL_TYPES.TENSORFLOW,
+            Model.MODEL_TYPES.COREML,
+            Model.MODEL_TYPES.TFLITE,
+            Model.MODEL_TYPES.ONNX,
+        ]
 
-        if CT_PRESENT:
-            present.append("CoreML")
-            try:
-                self.model_type = Model.MODEL_TYPES.COREML
-                self.model = ct.models.MLModel(str(model_path)+".mlpackage")
-                return
-            except Exception as e:
-                if str(model_path).endswith(".mlpackage"):
-                    logging.warning(
-                        "Could not load CoreML file %s even "
-                        "though it looks like a CoreML file with error %s. "
-                        "Are you sure it's a CoreML file?",
-                        model_path,
-                        e.__repr__(),
-                    )
+        for model_type in model_types:
+            if model_type == Model.MODEL_TYPES.TENSORFLOW:
+                if not TF_PRESENT or tf is None:
+                    continue
+                present.append("TensorFlow")
+                try:
+                    self.model_type = Model.MODEL_TYPES.TENSORFLOW
+                    self.model = tf.saved_model.load(str(model_path))
+                    return
+                except Exception as exception:
+                    if os.path.isdir(model_path) and {"saved_model.pb", "variables"} & set(os.listdir(model_path)):
+                        logging.warning(
+                            "Could not load TensorFlow saved model %s even "
+                            "though it looks like a saved model file with error %s. "
+                            "Are you sure it's a TensorFlow saved model?",
+                            model_path,
+                            exception.__repr__(),
+                        )
 
-        if ONNX_PRESENT:
-            present.append("ONNX")
-            try:
-                self.model_type = Model.MODEL_TYPES.ONNX
-                self.model = ort.InferenceSession(str(model_path)+".onnx")
-                return
-            except Exception as e:
-                if str(model_path).endswith(".onnx"):
-                    logging.warning(
-                        "Could not load ONNX file %s even "
-                        "though it looks like a ONNX file with error %s. "
-                        "Are you sure it's a ONNX file?",
-                        model_path,
-                        e.__repr__(),
-                    )
+            if model_type == Model.MODEL_TYPES.COREML:
+                if not CT_PRESENT or ct is None:
+                    continue
+                present.append("CoreML")
+                resolved_model_path = self._resolved_model_path(model_path, model_type)
+                try:
+                    self.model_type = Model.MODEL_TYPES.COREML
+                    self.model = ct.models.MLModel(str(resolved_model_path))
+                    return
+                except Exception as exception:
+                    if str(resolved_model_path).endswith(".mlpackage"):
+                        logging.warning(
+                            "Could not load CoreML file %s even "
+                            "though it looks like a CoreML file with error %s. "
+                            "Are you sure it's a CoreML file?",
+                            resolved_model_path,
+                            exception.__repr__(),
+                        )
 
-        if TF_PRESENT:
-            present.append("TensorFlow")
-            try:
-                self.model_type = Model.MODEL_TYPES.TENSORFLOW
-                self.model = tf.saved_model.load(str(model_path))
-                return
-            except Exception as e:
-                if os.path.isdir(model_path) and {"saved_model.pb", "variables"} & set(os.listdir(model_path)):
-                    logging.warning(
-                        "Could not load TensorFlow saved model %s even "
-                        "though it looks like a saved model file with error %s. "
-                        "Are you sure it's a TensorFlow saved model?",
-                        model_path,
-                        e.__repr__(),
-                    )
+            if model_type == Model.MODEL_TYPES.TFLITE:
+                if not TFLITE_PRESENT or tflite is None:
+                    continue
+                present.append("TensorFlowLite")
+                resolved_model_path = self._resolved_model_path(model_path, model_type)
+                try:
+                    self.model_type = Model.MODEL_TYPES.TFLITE
+                    self.interpreter = tflite.Interpreter(model_path=str(resolved_model_path))
+                    self.model = self.interpreter.get_signature_runner()
+                    return
+                except Exception as exception:
+                    if str(resolved_model_path).endswith(".tflite"):
+                        logging.warning(
+                            "Could not load TensorFlowLite file %s even "
+                            "though it looks like a TFLite file with error %s. "
+                            "Are you sure it's a TFLite file?",
+                            resolved_model_path,
+                            exception.__repr__(),
+                        )
 
-        if TFLITE_PRESENT or TF_PRESENT:
-            present.append("TensorFlowLite")
-            try:
-                self.model_type = Model.MODEL_TYPES.TFLITE
-                self.interpreter = tflite.Interpreter(str(model_path)+".tflite")
-                self.model = self.interpreter.get_signature_runner()
-                return
-            except Exception as e:
-                if str(model_path).endswith(".tflite"):
-                    logging.warning(
-                        "Could not load TensorFlowLite file %s even "
-                        "though it looks like a TFLite file with error %s. "
-                        "Are you sure it's a TFLite file?",
-                        model_path,
-                        e.__repr__(),
-                    )
+            if model_type == Model.MODEL_TYPES.ONNX:
+                if not ONNX_PRESENT or ort is None:
+                    continue
+                present.append("ONNX")
+                resolved_model_path = self._resolved_model_path(model_path, model_type)
+                try:
+                    self.model_type = Model.MODEL_TYPES.ONNX
+                    self.model = ort.InferenceSession(str(resolved_model_path))
+                    return
+                except Exception as exception:
+                    if str(resolved_model_path).endswith(".onnx"):
+                        logging.warning(
+                            "Could not load ONNX file %s even "
+                            "though it looks like an ONNX file with error %s. "
+                            "Are you sure it's an ONNX file?",
+                            resolved_model_path,
+                            exception.__repr__(),
+                        )
 
         raise ValueError(
             f"File {model_path} cannot be loaded into either "
@@ -156,9 +219,6 @@ class Model:
         if self.model_type == Model.MODEL_TYPES.TENSORFLOW:
             return {k: v.numpy() for k, v in cast(tf.keras.Model, self.model(x)).items()}
         elif self.model_type == Model.MODEL_TYPES.COREML:
-            print(f"isfinite: {np.all(np.isfinite(x))}", flush=True)
-            print(f"shape: {x.shape}", flush=True)
-            print(f"dtype: {x.dtype}", flush=True)
             result = cast(ct.models.MLModel, self.model).predict({"input_2": x})
             return {
                 "note": result["Identity_1"],
@@ -241,21 +301,18 @@ def unwrap_output(
     output: npt.NDArray[np.float32],
     audio_original_length: int,
     n_overlapping_frames: int,
-    hop_size: int,
-) -> np.array:
+) -> npt.NDArray[np.float32]:
     """Unwrap batched model predictions to a single matrix.
 
     Args:
         output: array (n_batches, n_times_short, n_freqs)
         audio_original_length: length of original audio signal (in samples)
         n_overlapping_frames: number of overlapping frames in the output
-        hop_size: size of the hop used when scanning the input audio
-        
     Returns:
         array (n_times, n_freqs)
     """
     if len(output.shape) != 3:
-        return None
+        raise ValueError(f"Expected model output with 3 dimensions, got shape {output.shape}.")
 
     n_olap = int(0.5 * n_overlapping_frames)
     if n_olap > 0:
@@ -265,15 +322,14 @@ def unwrap_output(
     # Concatenate the frames outputs (overlapping frames removed) into a single dimension
     output_shape = output.shape
     unwrapped_output = output.reshape(output_shape[0] * output_shape[1], output_shape[2])
-    n_expected_windows = audio_original_length / hop_size
-    n_frames_per_window = (AUDIO_WINDOW_LENGTH * ANNOTATIONS_FPS) - n_overlapping_frames
-    return unwrapped_output[: int(n_expected_windows * n_frames_per_window), :]
+    n_output_frames = int(audio_original_length * ANNOTATIONS_FPS / AUDIO_SAMPLE_RATE)
+    return unwrapped_output[:n_output_frames, :]
 
 def run_inference(
     audio_path: Union[pathlib.Path, str],
     model_or_model_path: Union[Model, pathlib.Path, str],
     debug_file: Optional[pathlib.Path] = None,
-) -> Dict[str, np.array]:
+) -> Dict[str, npt.NDArray[np.float32]]:
     """Run the model on the input audio path.
 
     Args:
@@ -294,20 +350,20 @@ def run_inference(
     overlap_len = n_overlapping_frames * FFT_HOP
     hop_size = int(AUDIO_N_SAMPLES - overlap_len)
 
-    output: Dict[str, Any] = {"note": [], "onset": [], "contour": []}
+    output: Dict[str, List[npt.NDArray[np.float32]]] = {"note": [], "onset": [], "contour": []}
     for audio_windowed, _, audio_original_length in get_audio_input(audio_path, overlap_len, hop_size):
         for k, v in model.predict(audio_windowed).items():
             output[k].append(v)
 
     unwrapped_output = {
-        k: unwrap_output(np.concatenate(output[k]), audio_original_length, n_overlapping_frames, hop_size) for k in output
+        k: unwrap_output(np.concatenate(output[k]), audio_original_length, n_overlapping_frames) for k in output
     }
 
     if debug_file:
         with open(debug_file, "w") as f:
             json.dump(
                 {
-                    "audio_windowed": audio_windowed.numpy().tolist(),
+                    "audio_windowed": audio_windowed.tolist(),
                     "audio_original_length": audio_original_length,
                     "hop_size_samples": hop_size,
                     "overlap_length_samples": overlap_len,
@@ -430,7 +486,7 @@ def predict(
     debug_file: Optional[pathlib.Path] = None,
     midi_tempo: float = 120,
 ) -> Tuple[
-    Dict[str, np.array],
+    Dict[str, npt.NDArray[np.float32]],
     pretty_midi.PrettyMIDI,
     List[Tuple[float, float, int, float, Optional[List[int]]]],
 ]:
@@ -463,6 +519,7 @@ def predict(
             min_note_len=min_note_len,  # convert to frames
             min_freq=minimum_frequency,
             max_freq=maximum_frequency,
+            include_pitch_bends=True,
             multiple_pitch_bends=multiple_pitch_bends,
             melodia_trick=melodia_trick,
             midi_tempo=midi_tempo,

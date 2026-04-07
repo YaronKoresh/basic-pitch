@@ -9,3 +9,5 @@ The code and scripts in this section deal with training basic pitch on your own.
 * **--job_endpoint**: the endpoint where the job is running. It defaults to `embed` which works for `PortableRunner`. 
 
 Additional arguments that work with Beam in general can be used as well, and will be passed along and used by the pipeline. If using `DataflowRunner`, you will be required to pass `--temp_location={Path to GCS Bucket}`, `--staging_location={Path to GCS Bucket}`, `--project={Name of GCS Project}` and `--region={GCS region}`. 
+
+With `mirdata>=0.3.9`, dataset split helpers will bootstrap lightweight mirdata index files on first use when they are not already available locally.

@@ -16,66 +16,34 @@
 # limitations under the License.
 
 import enum
-import logging
+import importlib.util
 import pathlib
 
 
-try:
-    import coremltools
-
-    CT_PRESENT = True
-except ImportError:
-    CT_PRESENT = False
-    logging.warning(
-        "Coremltools is not installed. "
-        "If you plan to use a CoreML Saved Model, "
-        "reinstall basic-pitch with `pip install 'basic-pitch[coreml]'`"
-    )
-
-try:
-    import tensorflow.lite
-
-    TFLITE_PRESENT = True
-except ImportError:
+def _module_available(module_name: str) -> bool:
     try:
-        import tflite_runtime.interpreter
-        TFLITE_PRESENT = True
-    except ImportError:
-        TFLITE_PRESENT = False
-        logging.warning(
-            "tflite-runtime is not installed. " +
-            "If you plan to use a TFLite Model, " +
-            "reinstall basic-pitch with `pip install 'basic-pitch tflite-runtime'` or " +
-            "`pip install 'basic-pitch[tf]'"
-        )
+        return importlib.util.find_spec(module_name) is not None
+    except ModuleNotFoundError:
+        return False
 
-try:
-    import onnx
 
-    ONNX_PRESENT = True
-except ImportError:
-    ONNX_PRESENT = False
-    logging.warning(
-        "onnxruntime is not installed. "
-        "If you plan to use an ONNX Model, "
-        "reinstall basic-pitch with `pip install 'basic-pitch[onnx]'`"
+CT_PRESENT = _module_available("coremltools")
+TF_PRESENT = _module_available("tensorflow")
+TFLITE_PRESENT = TF_PRESENT or _module_available("tflite_runtime.interpreter")
+ONNX_PRESENT = _module_available("onnxruntime")
+
+
+class FilenameSuffix(enum.Enum):
+    tf = ""
+    coreml = ".mlpackage"
+    tflite = ".tflite"
+    onnx = ".onnx"
+
+
+def build_icassp_2022_model_path(filename_suffix: FilenameSuffix = FilenameSuffix.tf) -> pathlib.Path:
+    return pathlib.Path(
+        f"{pathlib.Path(__file__).parent / 'saved_models' / 'icassp_2022' / 'nmp'}{filename_suffix.value}"
     )
-
-
-try:
-    import tensorflow
-
-    TF_PRESENT = True
-except ImportError:
-    TF_PRESENT = False
-    logging.warning(
-        "Tensorflow is not installed. "
-        "If you plan to use a TF Saved Model, "
-        "reinstall basic-pitch with `pip install 'basic-pitch[tf]'`"
-    )
-
-def build_icassp_2022_model_path() -> pathlib.Path:
-    return f"{pathlib.Path(__file__).parent}/saved_models/icassp_2022/nmp"
 
 
 ICASSP_2022_MODEL_PATH = build_icassp_2022_model_path()

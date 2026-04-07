@@ -27,6 +27,7 @@ import apache_beam as beam
 import mirdata
 
 from basic_pitch.data import commandline, pipeline
+from basic_pitch.data.datasets.mirdata_compat import copy_remote_file, get_mirdata_track_ids
 
 
 class IkalaInvalidTracks(beam.DoFn):
@@ -81,9 +82,7 @@ class IkalaToTfExample(beam.DoFn):
                 for attr in self.DOWNLOAD_ATTRIBUTES:
                     source = getattr(track_remote, attr)
                     dest = getattr(track_local, attr)
-                    os.makedirs(os.path.dirname(dest), exist_ok=True)
-                    with self.filesystem.open(source) as s, open(dest, "wb") as d:
-                        d.write(s.read())
+                    copy_remote_file(self.filesystem, source, dest)
 
                 local_wav_path = "{}_tmp.wav".format(track_local.audio_path)
 
@@ -142,7 +141,7 @@ def create_input_data(train_percent: float, seed: Optional[int] = None) -> List[
         random.seed(seed)
 
     ikala = mirdata.initialize("ikala")
-    track_ids = ikala.track_ids
+    track_ids = get_mirdata_track_ids(ikala)
     random.shuffle(track_ids)
 
     def determine_split(index: int) -> str:

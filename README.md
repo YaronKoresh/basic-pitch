@@ -9,7 +9,7 @@
 
 Basic Pitch is a Python library for Automatic Music Transcription (AMT), using lightweight neural network developed by [Spotify's Audio Intelligence Lab](https://research.atspotify.com/audio-intelligence/). It's small, easy-to-use, `pip install`-able and `npm install`-able via its [sibling repo](https://github.com/spotify/basic-pitch-ts).
 
-Basic Pitch may be simple, but it's is far from "basic"! `basic-pitch` is efficient and easy to use, and its multipitch support, its ability to generalize across instruments, and its note accuracy competes with much larger and more resource-hungry AMT systems.
+Basic Pitch may be simple, but it's far from "basic"! `basic-pitch` is efficient and easy to use, and its multipitch support, its ability to generalize across instruments, and its note accuracy competes with much larger and more resource-hungry AMT systems.
 
 Provide a compatible audio file and basic-pitch will generate a MIDI file, complete with pitch bends. Basic pitch is instrument-agnostic and supports polyphonic instruments, so you can freely enjoy transcription of all your favorite music, no matter what instrument is used.  Basic pitch works best on one instrument at a time.
 
@@ -43,14 +43,13 @@ If, for whatever reason, you're not yet completely inspired, or you're just like
 To update Basic Pitch to the latest version, add `--upgrade` to the above command.
 
 #### Compatible Environments:
-- MacOS, Windows and Ubuntu operating systems
-- Python versions 3.7, 3.8, 3.9, 3.10, 3.11
-- **For Mac M1 hardware, we currently only support python version 3.10. Otherwise, we suggest using a virtual machine.**
+- macOS, Windows, and Linux operating systems
+- Python versions 3.8, 3.9, 3.10, 3.11, and 3.12
 
 
 ### Model Runtime
 
-Basic Pitch comes with the original TensorFlow model and the TensorFlow model converted to [CoreML](https://developer.apple.com/documentation/coreml), [TensorFlowLite](https://www.tensorflow.org/lite), and [ONNX](https://onnx.ai/). By default, Basic Pitch will _not_ install TensorFlow as a dependency *unless you are using Python>=3.11*. Instead, by default, CoreML will be installed on MacOS, TensorFlowLite will be installed on Linux and ONNX will be installed on Windows. If you want to install TensorFlow along with the default model inference runtime, you can install TensorFlow via `pip install basic-pitch[tf]`.
+Basic Pitch comes with the original TensorFlow model and the TensorFlow model converted to [CoreML](https://developer.apple.com/documentation/coreml), [TensorFlowLite](https://www.tensorflow.org/lite), and [ONNX](https://onnx.ai/). By default, Basic Pitch installs TensorFlow on Python 3.10+ and falls back to CoreML on macOS or ONNX Runtime on Linux and Windows on older supported interpreters. CoreML and ONNX remain available as platform-native fallbacks when TensorFlow is unavailable. TensorFlow Lite remains available as an optional extra on supported Linux interpreters via `pip install "basic-pitch[tflite]"`.
 
 ## Usage
 
@@ -94,7 +93,7 @@ Optionally, you may append any of the following flags to your prediction command
 - `--save-model-outputs` to additionally save raw model outputs as an NPZ file.
 - `--save-note-events` to additionally save the predicted note events as a CSV file.
 
-If you want to use a non-default model type (e.g., use CoreML instead of TF), use the `--model-serialization` argument. The CLI will change the loaded model to the type you prefer.
+If you want to use a non-default model type (e.g. use CoreML instead of TensorFlow), use the `--model-serialization` argument. The CLI will load the requested serialization directly.
 
 To discover more parameter control, run:
 ```bash
@@ -131,12 +130,12 @@ import tensorflow as tf
 from basic_pitch.inference import predict, Model
 from basic_pitch import ICASSP_2022_MODEL_PATH
 
-basic_pitch_model = Model(ICASSP_2022_MODEL_PATH))
+basic_pitch_model = Model(ICASSP_2022_MODEL_PATH)
 
-for x in range():
+for input_audio_path in input_audio_paths:
     ...
     model_output, midi_data, note_events = predict(
-        <loop-x-input-audio-path>,
+          input_audio_path,
         basic_pitch_model,
     )
     ...
