@@ -311,6 +311,9 @@ def get_infered_onsets(onsets: np.array, frames: np.array, n_diff: int = 2) -> n
     Returns:
         The maximum between the predicted onsets and its differences.
     """
+    if frames.shape[0] == 0:
+        return onsets
+
     diffs = []
     for n in range(1, n_diff + 1):
         frames_appended = np.concatenate([np.zeros((n, frames.shape[1])), frames])
@@ -318,7 +321,10 @@ def get_infered_onsets(onsets: np.array, frames: np.array, n_diff: int = 2) -> n
     frame_diff = np.min(diffs, axis=0)
     frame_diff[frame_diff < 0] = 0
     frame_diff[:n_diff, :] = 0
-    frame_diff = np.max(onsets) * frame_diff / np.max(frame_diff)  # rescale to have the same max as onsets
+    max_frame_diff = np.max(frame_diff)
+    if max_frame_diff <= 0:  # no change in the frames, so there is nothing to infer
+        return onsets
+    frame_diff = np.max(onsets) * frame_diff / max_frame_diff  # rescale to have the same max as onsets
 
     max_onsets_diff = np.max([onsets, frame_diff], axis=0)  # use the max of the predicted onsets and the differences
 
@@ -406,6 +412,8 @@ def output_to_notes_polyphonic(
     """
 
     n_frames = frames.shape[0]
+    if n_frames == 0:
+        return []
 
     onsets, frames = constrain_frequency(onsets, frames, max_freq, min_freq)
     # use onsets inferred from frames in addition to the predicted onsets

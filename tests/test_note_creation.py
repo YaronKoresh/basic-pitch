@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
 from typing import List, Optional, Tuple
 
 import librosa
@@ -22,7 +23,13 @@ import numpy as np
 import pretty_midi
 import pytest
 
-from basic_pitch.note_creation import constrain_frequency, drop_overlapping_pitch_bends, note_events_to_midi
+from basic_pitch.note_creation import (
+    constrain_frequency,
+    drop_overlapping_pitch_bends,
+    get_infered_onsets,
+    note_events_to_midi,
+    output_to_notes_polyphonic,
+)
 
 
 def test_drop_overlapping_pitch_bends() -> None:
@@ -134,3 +141,33 @@ def test_note_events_to_midi_resets_pitch_bend_per_instrument() -> None:
     assert ends[60] == pytest.approx(1.0, abs=0.01)
     assert ends[64] == pytest.approx(2.0, abs=0.01)
     assert all(inst.pitch_bends[-1].pitch == 0 for inst in midi.instruments)
+
+
+def test_get_infered_onsets_with_silent_frames_returns_onsets_without_warning() -> None:
+    onsets = np.zeros((50, 88))
+    frames = np.zeros((50, 88))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        result = get_infered_onsets(onsets, frames)
+    np.testing.assert_array_equal(result, onsets)
+
+
+def test_get_infered_onsets_without_frames_returns_empty_onsets() -> None:
+    result = get_infered_onsets(np.zeros((0, 88)), np.zeros((0, 88)))
+    assert result.shape == (0, 88)
+
+
+def test_output_to_notes_polyphonic_without_frames_returns_no_notes() -> None:
+    notes = output_to_notes_polyphonic(
+        np.zeros((0, 88)), np.zeros((0, 88)), 0.5, 0.3, 11, True, None, None, melodia_trick=True
+    )
+    assert notes == []
+
+
+def test_get_infered_onsets_still_adds_onset_where_frames_rise() -> None:
+    onsets = np.zeros((50, 88))
+    frames = np.zeros((50, 88))
+    onsets[0, 0] = 0.5
+    frames[20:40, 30] = 0.9
+    result = get_infered_onsets(onsets, frames)
+    assert result[20, 30] == pytest.approx(0.5)
