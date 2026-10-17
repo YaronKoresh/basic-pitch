@@ -62,6 +62,7 @@ def model_output_to_notes(
     melodia_trick: bool = True,
     midi_tempo: float = 120,
     melodia_peak_thresh: float = 0.5,
+    note_peak_thresh: float = 0.4,
 ) -> Tuple[pretty_midi.PrettyMIDI, List[Tuple[float, float, int, float, Optional[List[int]]]]]:
     """Convert model output to MIDI
 
@@ -84,6 +85,7 @@ def model_output_to_notes(
         midi_tempo: The tempo of the MIDI file.
         melodia_peak_thresh: A note found by the melodia step only (without an onset of at least onset_thresh)
             is kept only if its frame activation reaches this value.
+        note_peak_thresh: A note is dropped if its frame activation never reaches this value. Use 0 to keep every note.
 
     Returns:
         midi : pretty_midi.PrettyMIDI object
@@ -104,6 +106,7 @@ def model_output_to_notes(
         max_freq=max_freq,
         melodia_trick=melodia_trick,
         melodia_peak_thresh=melodia_peak_thresh,
+        note_peak_thresh=note_peak_thresh,
     )
     if include_pitch_bends:
         estimated_notes_with_pitch_bend = get_pitch_bends(contours, estimated_notes)
@@ -397,6 +400,7 @@ def output_to_notes_polyphonic(
     melodia_trick: bool = True,
     energy_tol: int = 11,
     melodia_peak_thresh: float = 0.5,
+    note_peak_thresh: float = 0.4,
 ) -> List[Tuple[int, int, int, float]]:
     """Decode raw model output to polyphonic note events
 
@@ -413,6 +417,7 @@ def output_to_notes_polyphonic(
         energy_tol: Drop notes below this energy.
         melodia_peak_thresh: A note found by the melodia trick without an onset of at least onset_thresh is dropped
             unless its frame activation reaches this value.
+        note_peak_thresh: A note is dropped if its frame activation never reaches this value. Use 0 to keep every note.
 
     Returns:
         list of tuples [(start_time_frames, end_time_frames, pitch_midi, amplitude)]
@@ -467,6 +472,10 @@ def output_to_notes_polyphonic(
             remaining_energy[note_start_idx:i, freq_idx + 1] = 0
         if freq_idx > 0:
             remaining_energy[note_start_idx:i, freq_idx - 1] = 0
+
+        # a note whose frames never become clearly active is not backed by the model's frame output
+        if np.max(frames[note_start_idx:i, freq_idx]) < note_peak_thresh:
+            continue
 
         # add the note
         amplitude = np.mean(frames[note_start_idx:i, freq_idx])
@@ -531,9 +540,9 @@ def output_to_notes_polyphonic(
                 continue
 
             # a note found only by following frame energy needs more than a weak activation to be kept
-            if (
-                np.max(frames[i_start:i_end, freq_idx]) < melodia_peak_thresh
-                and np.max(onsets[i_start:i_end, freq_idx]) < onset_thresh
+            peak = np.max(frames[i_start:i_end, freq_idx])
+            if peak < note_peak_thresh or (
+                peak < melodia_peak_thresh and np.max(onsets[i_start:i_end, freq_idx]) < onset_thresh
             ):
                 continue
 

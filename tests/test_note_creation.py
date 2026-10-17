@@ -220,3 +220,29 @@ def test_melodia_peak_threshold_can_be_lowered() -> None:
         frames, onsets, 0.5, 0.3, 11, False, None, None, melodia_trick=True, melodia_peak_thresh=0.0
     )
     assert len(notes) == 1
+
+
+def test_note_with_weak_frames_is_dropped_even_with_a_strong_onset() -> None:
+    onsets = np.zeros((100, 88))
+    frames = np.zeros((100, 88))
+    frames[20:70, 40] = 0.35
+    onsets[20, 40] = 0.9
+    assert output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None) == []
+
+
+def test_note_with_clear_frames_and_onset_is_kept() -> None:
+    onsets = np.zeros((100, 88))
+    frames = np.zeros((100, 88))
+    frames[20:70, 40] = 0.45
+    onsets[20, 40] = 0.9
+    notes = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None)
+    assert [(n[0], n[2]) for n in notes] == [(20, 40 + 21)]
+
+
+def test_note_peak_threshold_can_be_disabled() -> None:
+    onsets = np.zeros((100, 88))
+    frames = np.zeros((100, 88))
+    frames[20:70, 40] = 0.35
+    onsets[20, 40] = 0.9
+    notes = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None, note_peak_thresh=0.0)
+    assert len(notes) == 1
