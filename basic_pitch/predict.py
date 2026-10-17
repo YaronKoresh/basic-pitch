@@ -18,6 +18,7 @@
 import argparse
 import os
 import pathlib
+import sys
 import traceback
 
 from basic_pitch import (
@@ -167,11 +168,13 @@ def main() -> None:
     )
 
     output_dir = pathlib.Path(args.output_dir)
-    verify_output_dir(output_dir)
-
     audio_path_list = [pathlib.Path(audio_path) for audio_path in args.audio_paths]
-    for audio_path in audio_path_list:
-        verify_input_path(audio_path)
+    try:
+        verify_output_dir(output_dir)
+        for audio_path in audio_path_list:
+            verify_input_path(audio_path)
+    except ValueError as error:
+        parser.error(str(error))
 
     if args.model_serialization:
         model = Model(build_icassp_2022_model_path(FilenameSuffix[args.model_serialization]))
@@ -201,11 +204,13 @@ def main() -> None:
         print("\n✨ Done ✨\n")
     except IOError as ioe:
         print(ioe)
+        sys.exit(1)
     except Exception as e:
         print("🚨 Something went wrong 😔 - see the traceback below for details.")
         print("")
         print(e)
         print(traceback.format_exc())
+        sys.exit(1)
 
 
 if __name__ == "__main__":
