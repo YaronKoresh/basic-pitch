@@ -182,3 +182,41 @@ def test_note_events_to_midi_emits_no_warnings_for_many_bent_notes() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         note_events_to_midi(events, multiple_pitch_bends=True)
+
+
+def _sustained_activation(peak: float, onset: float) -> Tuple[np.ndarray, np.ndarray]:
+    frames = np.zeros((100, 88))
+    onsets = np.zeros((100, 88))
+    frames[20:70, 40] = peak
+    onsets[40:45, 40] = onset  # a plateau has no local maximum, so the note can only be found by the melodia step
+    return onsets, frames
+
+
+def _decode(onsets: np.ndarray, frames: np.ndarray, melodia_trick: bool = True) -> list:  # type: ignore[type-arg]
+    return output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None, melodia_trick=melodia_trick)
+
+
+def test_melodia_drops_weak_note_without_onset() -> None:
+    onsets, frames = _sustained_activation(peak=0.4, onset=0.0)
+    assert _decode(onsets, frames) == []
+
+
+def test_melodia_keeps_strong_note_without_onset() -> None:
+    onsets, frames = _sustained_activation(peak=0.7, onset=0.0)
+    notes = _decode(onsets, frames)
+    assert len(notes) == 1
+    assert notes[0][2] == 40 + 21
+
+
+def test_melodia_keeps_weak_note_with_strong_onset() -> None:
+    onsets, frames = _sustained_activation(peak=0.4, onset=0.9)
+    assert _decode(onsets, frames, melodia_trick=False) == []
+    assert len(_decode(onsets, frames)) == 1
+
+
+def test_melodia_peak_threshold_can_be_lowered() -> None:
+    onsets, frames = _sustained_activation(peak=0.4, onset=0.0)
+    notes = output_to_notes_polyphonic(
+        frames, onsets, 0.5, 0.3, 11, False, None, None, melodia_trick=True, melodia_peak_thresh=0.0
+    )
+    assert len(notes) == 1

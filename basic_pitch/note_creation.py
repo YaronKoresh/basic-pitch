@@ -61,6 +61,7 @@ def model_output_to_notes(
     multiple_pitch_bends: bool = False,
     melodia_trick: bool = True,
     midi_tempo: float = 120,
+    melodia_peak_thresh: float = 0.5,
 ) -> Tuple[pretty_midi.PrettyMIDI, List[Tuple[float, float, int, float, Optional[List[int]]]]]:
     """Convert model output to MIDI
 
@@ -80,6 +81,9 @@ def model_output_to_notes(
         include_pitch_bends: If True, include pitch bends.
         multiple_pitch_bends: If True, allow overlapping notes in midi file to have pitch bends.
         melodia_trick: Use the melodia post-processing step.
+        midi_tempo: The tempo of the MIDI file.
+        melodia_peak_thresh: A note found by the melodia step only (without an onset of at least onset_thresh)
+            is kept only if its frame activation reaches this value.
 
     Returns:
         midi : pretty_midi.PrettyMIDI object
@@ -99,6 +103,7 @@ def model_output_to_notes(
         min_freq=min_freq,
         max_freq=max_freq,
         melodia_trick=melodia_trick,
+        melodia_peak_thresh=melodia_peak_thresh,
     )
     if include_pitch_bends:
         estimated_notes_with_pitch_bend = get_pitch_bends(contours, estimated_notes)
@@ -391,6 +396,7 @@ def output_to_notes_polyphonic(
     min_freq: Optional[float],
     melodia_trick: bool = True,
     energy_tol: int = 11,
+    melodia_peak_thresh: float = 0.5,
 ) -> List[Tuple[int, int, int, float]]:
     """Decode raw model output to polyphonic note events
 
@@ -405,6 +411,8 @@ def output_to_notes_polyphonic(
         min_freq: Minimum allowed output frequency, in Hz.
         melodia_trick : Whether to use the melodia trick to better detect notes.
         energy_tol: Drop notes below this energy.
+        melodia_peak_thresh: A note found by the melodia trick without an onset of at least onset_thresh is dropped
+            unless its frame activation reaches this value.
 
     Returns:
         list of tuples [(start_time_frames, end_time_frames, pitch_midi, amplitude)]
@@ -520,6 +528,13 @@ def output_to_notes_polyphonic(
 
             if i_end - i_start <= min_note_len:
                 # note is too short, skip it
+                continue
+
+            # a note found only by following frame energy needs more than a weak activation to be kept
+            if (
+                np.max(frames[i_start:i_end, freq_idx]) < melodia_peak_thresh
+                and np.max(onsets[i_start:i_end, freq_idx]) < onset_thresh
+            ):
                 continue
 
             # add the note
