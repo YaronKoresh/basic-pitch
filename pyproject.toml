@@ -71,6 +71,9 @@ test = [
 tf = [
 	"tensorflow>=2.4.1,<2.15.1; platform_system != 'Darwin' and python_version < '3.12'",
 	"tensorflow-macos>=2.4.1,<2.15.1; platform_system == 'Darwin' and python_version > '3.7' and python_version < '3.12'",
+	"tensorflow>=2.16; python_version >= '3.12'",
+	"tf_keras>=2.16; python_version >= '3.12'",
+	"tensorboard; python_version >= '3.12'",
 ]
 coreml = ["coremltools"] 
 onnx = ["onnxruntime"]

@@ -52,11 +52,30 @@ def test_a_model_runtime_is_installed_by_default(system: str, python_version: st
 
 @pytest.mark.parametrize("system", ["Linux", "Darwin", "Windows"])
 @pytest.mark.parametrize("python_version", ["3.12", "3.13"])
-def test_tensorflow_pin_is_not_required_on_python_without_matching_wheels(system: str, python_version: str) -> None:
-    project = _project()
-    requirements = project["dependencies"] + project["optional-dependencies"]["tf"]
-    active = _active_requirements(requirements, system, python_version)
+def test_tensorflow_is_not_a_default_dependency_on_new_python(system: str, python_version: str) -> None:
+    active = _active_requirements(_project()["dependencies"], system, python_version)
     assert not {"tensorflow", "tensorflow-macos"} & set(active)
+
+
+@pytest.mark.parametrize("system", ["Linux", "Darwin", "Windows"])
+@pytest.mark.parametrize("python_version", ["3.12", "3.13"])
+def test_tf_extra_installs_keras_2_compatible_tensorflow_on_new_python(system: str, python_version: str) -> None:
+    active = _active_requirements(_project()["optional-dependencies"]["tf"], system, python_version)
+    assert "tensorflow-macos" not in active
+    assert active["tensorflow"].specifier.contains("2.21.0")
+    assert not active["tensorflow"].specifier.contains("2.15.0")
+    assert {"tf_keras", "tensorboard"} <= set(active)
+
+
+@pytest.mark.parametrize("system", ["Linux", "Darwin", "Windows"])
+@pytest.mark.parametrize("python_version", ["3.8", "3.9", "3.10", "3.11"])
+def test_tf_extra_keeps_the_pinned_tensorflow_on_older_python(system: str, python_version: str) -> None:
+    active = _active_requirements(_project()["optional-dependencies"]["tf"], system, python_version)
+    name = "tensorflow-macos" if system == "Darwin" else "tensorflow"
+    if python_version == "3.8" and system == "Darwin":
+        return
+    assert not active[name].specifier.contains("2.16.0")
+    assert "tf_keras" not in active
 
 
 def test_classifiers_cover_new_python_versions() -> None:

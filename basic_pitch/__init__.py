@@ -16,9 +16,15 @@
 # limitations under the License.
 
 import enum
+import importlib.util
 import logging
+import os
 import pathlib
 
+# The layers and models of this package are written for Keras 2. TensorFlow 2.16+ ships Keras 3 by default,
+# so use the legacy Keras (tf_keras) when it is installed. This has to happen before tensorflow is imported.
+if "TF_USE_LEGACY_KERAS" not in os.environ and importlib.util.find_spec("tf_keras") is not None:
+    os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 try:
     import coremltools
