@@ -318,7 +318,7 @@ def run_inference(
         with open(debug_file, "w") as f:
             json.dump(
                 {
-                    "audio_windowed": audio_windowed.numpy().tolist(),
+                    "audio_windowed": audio_windowed.tolist(),
                     "audio_original_length": audio_original_length,
                     "hop_size_samples": hop_size,
                     "overlap_length_samples": overlap_len,

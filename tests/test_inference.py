@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import faulthandler
+import json
 import os
 import pathlib
 import tempfile
@@ -193,3 +194,15 @@ def test_get_audio_input() -> None:
     np.testing.assert_equal(audio[:AUDIO_N_SAMPLES], np.squeeze(audio_windowed[0]))
 
     assert original_length == 200607
+
+
+def test_predict_writes_debug_file() -> None:
+    test_audio_path = RESOURCES_PATH / "vocadito_10.wav"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        debug_file = pathlib.Path(tmpdir) / "debug.json"
+        _, _, note_events = inference.predict(test_audio_path, ICASSP_2022_MODEL_PATH, debug_file=debug_file)
+        with open(debug_file) as f:
+            debug_data = json.load(f)
+    assert np.array(debug_data["audio_windowed"]).shape == (1, AUDIO_N_SAMPLES, 1)
+    assert set(debug_data["unwrapped_output"].keys()) == {"note", "onset", "contour"}
+    assert len(debug_data["estimated_notes"]) == len(note_events)
