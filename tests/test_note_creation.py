@@ -171,3 +171,14 @@ def test_get_infered_onsets_still_adds_onset_where_frames_rise() -> None:
     frames[20:40, 30] = 0.9
     result = get_infered_onsets(onsets, frames)
     assert result[20, 30] == pytest.approx(0.5)
+
+
+def test_note_events_to_midi_emits_no_warnings_for_many_bent_notes() -> None:
+    rng = np.random.default_rng(1)
+    starts = np.sort(rng.uniform(0, 60, size=300))
+    events: List[Tuple[float, float, int, float, Optional[List[int]]]] = [
+        (float(s), float(s + rng.uniform(0.05, 0.3)), int(rng.integers(21, 109)), 0.8, [1, 2, 1]) for s in starts
+    ]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        note_events_to_midi(events, multiple_pitch_bends=True)

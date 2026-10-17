@@ -276,7 +276,7 @@ def note_events_to_midi(
     for instrument_key, spans in bent_notes.items():
         spans.sort()
         for i, (_, end_time) in enumerate(spans):
-            reset_time = mid.tick_to_time(mid.time_to_tick(end_time) + 1)
+            reset_time = mid.tick_to_time(int(mid.time_to_tick(end_time)) + 1)
             if i + 1 < len(spans) and spans[i + 1][0] <= reset_time:
                 continue
             instruments[instrument_key].pitch_bends.append(pretty_midi.PitchBend(0, reset_time))
