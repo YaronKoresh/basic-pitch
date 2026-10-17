@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import pathlib
+import subprocess
 import sys
 from typing import Any, Dict, List
 
@@ -82,3 +83,18 @@ def test_classifiers_cover_new_python_versions() -> None:
     classifiers = _project()["classifiers"]
     for version in ["3.12", "3.13"]:
         assert f"Programming Language :: Python :: {version}" in classifiers
+
+
+def test_package_imports_without_any_model_runtime() -> None:
+    code = (
+        "import sys\n"
+        "for name in ('tensorflow', 'coremltools', 'tflite_runtime', 'tflite_runtime.interpreter', 'onnxruntime'):\n"
+        "    sys.modules[name] = None\n"
+        "import basic_pitch\n"
+        "assert not (basic_pitch.TF_PRESENT or basic_pitch.CT_PRESENT or basic_pitch.TFLITE_PRESENT"
+        " or basic_pitch.ONNX_PRESENT)\n"
+        "print(basic_pitch.ICASSP_2022_MODEL_PATH.name)\n"
+    )
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == "nmp"

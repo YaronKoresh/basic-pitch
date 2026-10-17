@@ -92,6 +92,9 @@ elif TFLITE_PRESENT:
     _default_model_type = FilenameSuffix.tflite
 elif ONNX_PRESENT:
     _default_model_type = FilenameSuffix.onnx
+else:
+    # no runtime is installed: importing still works and loading a model reports which runtimes are missing
+    _default_model_type = FilenameSuffix.tf
 
 
 def build_icassp_2022_model_path(suffix: FilenameSuffix) -> pathlib.Path:
