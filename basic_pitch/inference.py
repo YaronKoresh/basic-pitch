@@ -548,57 +548,67 @@ def predict_and_save(
     for audio_path in audio_path_list:
         print("")
         try:
-            model_output, midi_data, note_events = predict(
-                pathlib.Path(audio_path),
-                model_or_model_path,
-                onset_threshold,
-                frame_threshold,
-                minimum_note_length,
-                minimum_frequency,
-                maximum_frequency,
-                multiple_pitch_bends,
-                melodia_trick,
-                debug_file,
-                midi_tempo,
+            # resolve every output path first, so an existing file skips this audio before anything is written
+            model_output_path = (
+                build_output_path(audio_path, output_directory, OutputExtensions.MODEL_OUTPUT_NPZ)
+                if save_model_outputs
+                else None
             )
+            midi_path = build_output_path(audio_path, output_directory, OutputExtensions.MIDI) if save_midi else None
+            midi_sonify_path = (
+                build_output_path(audio_path, output_directory, OutputExtensions.MIDI_SONIFICATION)
+                if sonify_midi
+                else None
+            )
+            note_events_path = (
+                build_output_path(audio_path, output_directory, OutputExtensions.NOTE_EVENTS) if save_notes else None
+            )
+        except IOError as e:
+            print(e)
+            continue
 
-            if save_model_outputs:
-                model_output_path = build_output_path(audio_path, output_directory, OutputExtensions.MODEL_OUTPUT_NPZ)
-                try:
-                    np.savez(model_output_path, basic_pitch_model_output=model_output)
-                    file_saved_confirmation(OutputExtensions.MODEL_OUTPUT_NPZ.name, model_output_path)
-                except Exception as e:
-                    failed_to_save(OutputExtensions.MODEL_OUTPUT_NPZ.name, model_output_path)
-                    raise e
+        model_output, midi_data, note_events = predict(
+            pathlib.Path(audio_path),
+            model_or_model_path,
+            onset_threshold,
+            frame_threshold,
+            minimum_note_length,
+            minimum_frequency,
+            maximum_frequency,
+            multiple_pitch_bends,
+            melodia_trick,
+            debug_file,
+            midi_tempo,
+        )
 
-            if save_midi:
-                try:
-                    midi_path = build_output_path(audio_path, output_directory, OutputExtensions.MIDI)
-                except IOError as e:
-                    raise e
-                try:
-                    midi_data.write(str(midi_path))
-                    file_saved_confirmation(OutputExtensions.MIDI.name, midi_path)
-                except Exception as e:
-                    failed_to_save(OutputExtensions.MIDI.name, midi_path)
-                    raise e
+        if model_output_path is not None:
+            try:
+                np.savez(model_output_path, basic_pitch_model_output=model_output)
+                file_saved_confirmation(OutputExtensions.MODEL_OUTPUT_NPZ.name, model_output_path)
+            except Exception as e:
+                failed_to_save(OutputExtensions.MODEL_OUTPUT_NPZ.name, model_output_path)
+                raise e
 
-            if sonify_midi:
-                midi_sonify_path = build_output_path(audio_path, output_directory, OutputExtensions.MIDI_SONIFICATION)
-                try:
-                    infer.sonify_midi(midi_data, midi_sonify_path, sr=sonification_samplerate)
-                    file_saved_confirmation(OutputExtensions.MIDI_SONIFICATION.name, midi_sonify_path)
-                except Exception as e:
-                    failed_to_save(OutputExtensions.MIDI_SONIFICATION.name, midi_sonify_path)
-                    raise e
+        if midi_path is not None:
+            try:
+                midi_data.write(str(midi_path))
+                file_saved_confirmation(OutputExtensions.MIDI.name, midi_path)
+            except Exception as e:
+                failed_to_save(OutputExtensions.MIDI.name, midi_path)
+                raise e
 
-            if save_notes:
-                note_events_path = build_output_path(audio_path, output_directory, OutputExtensions.NOTE_EVENTS)
-                try:
-                    save_note_events(note_events, note_events_path)
-                    file_saved_confirmation(OutputExtensions.NOTE_EVENTS.name, note_events_path)
-                except Exception as e:
-                    failed_to_save(OutputExtensions.NOTE_EVENTS.name, note_events_path)
-                    raise e
-        except Exception as e:
-            raise e
+        if midi_sonify_path is not None:
+            try:
+                infer.sonify_midi(midi_data, midi_sonify_path, sr=sonification_samplerate)
+                file_saved_confirmation(OutputExtensions.MIDI_SONIFICATION.name, midi_sonify_path)
+            except Exception as e:
+                failed_to_save(OutputExtensions.MIDI_SONIFICATION.name, midi_sonify_path)
+                raise e
+
+        if note_events_path is not None:
+            try:
+                save_note_events(note_events, note_events_path)
+                file_saved_confirmation(OutputExtensions.NOTE_EVENTS.name, note_events_path)
+            except Exception as e:
+                failed_to_save(OutputExtensions.NOTE_EVENTS.name, note_events_path)
+                raise e

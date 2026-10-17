@@ -104,6 +104,37 @@ def test_predict_with_saves() -> None:
             assert os.path.exists(output_path)
 
 
+def test_predict_and_save_skips_audio_with_existing_output_and_continues() -> None:
+    test_audio_path = RESOURCES_PATH / "vocadito_10.wav"
+    with tempfile.TemporaryDirectory() as tmpdir:
+        first = pathlib.Path(tmpdir) / "first.wav"
+        second = pathlib.Path(tmpdir) / "second.wav"
+        output_dir = pathlib.Path(tmpdir) / "out"
+        output_dir.mkdir()
+        for audio in (first, second):
+            audio.write_bytes(test_audio_path.read_bytes())
+        existing_midi = output_dir / "first_basic_pitch.mid"
+        existing_midi.write_bytes(b"keep")
+
+        inference.predict_and_save(
+            [first, second],
+            output_dir,
+            True,
+            False,
+            True,
+            True,
+            model_or_model_path=ICASSP_2022_MODEL_PATH,
+        )
+
+        assert existing_midi.read_bytes() == b"keep"
+        # nothing else is written for the skipped audio
+        assert not (output_dir / "first_basic_pitch.npz").exists()
+        assert not (output_dir / "first_basic_pitch.csv").exists()
+        # the following audio is still processed
+        for suffix in ("mid", "npz", "csv"):
+            assert (output_dir / f"second_basic_pitch.{suffix}").exists()
+
+
 def test_predict_onset_threshold() -> None:
     test_audio_path = RESOURCES_PATH / "vocadito_10.wav"
     for onset_threshold in [0, 0.3, 0.8, 1]:
