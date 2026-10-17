@@ -15,7 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from basic_pitch.note_creation import drop_overlapping_pitch_bends
+from typing import Tuple
+
+import librosa
+import numpy as np
+import pytest
+
+from basic_pitch.note_creation import constrain_frequency, drop_overlapping_pitch_bends
 
 
 def test_drop_overlapping_pitch_bends() -> None:
@@ -48,3 +54,42 @@ def test_drop_overlapping_pitch_bends() -> None:
     ]
     result = drop_overlapping_pitch_bends(note_events_with_pitch_bends)
     assert sorted(result) == sorted(expected)
+
+
+def _single_note_activations() -> Tuple[np.ndarray, np.ndarray]:
+    onsets = np.zeros((100, 88))
+    frames = np.zeros((100, 88))
+    frames[10:60, 40] = 0.9
+    onsets[10, 40] = 0.9
+    return onsets, frames
+
+
+@pytest.mark.parametrize("min_freq", [1.0, 10.0, 20.0, 27.5])
+def test_constrain_frequency_min_below_lowest_key_keeps_notes(min_freq: float) -> None:
+    onsets, frames = _single_note_activations()
+    onsets, frames = constrain_frequency(onsets, frames, None, min_freq)
+    assert frames[:, 40].sum() > 0
+    assert onsets[10, 40] > 0
+
+
+@pytest.mark.parametrize("max_freq", [1.0, 15.0, 20.0])
+def test_constrain_frequency_max_below_lowest_key_removes_notes(max_freq: float) -> None:
+    onsets, frames = _single_note_activations()
+    onsets, frames = constrain_frequency(onsets, frames, max_freq, None)
+    assert frames.sum() == 0
+    assert onsets.sum() == 0
+
+
+def test_constrain_frequency_keeps_bin_nearest_to_max_freq() -> None:
+    onsets, frames = _single_note_activations()
+    max_freq = librosa.midi_to_hz(40 + 21)
+    onsets, frames = constrain_frequency(onsets, frames, max_freq, None)
+    assert frames[:, 40].sum() > 0
+
+
+def test_constrain_frequency_does_not_modify_inputs() -> None:
+    onsets, frames = _single_note_activations()
+    onsets_before, frames_before = onsets.copy(), frames.copy()
+    constrain_frequency(onsets, frames, 100.0, 5000.0)
+    np.testing.assert_array_equal(onsets, onsets_before)
+    np.testing.assert_array_equal(frames, frames_before)

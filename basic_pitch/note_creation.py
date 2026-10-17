@@ -331,10 +331,13 @@ def constrain_frequency(
     max_freq_idx = n_freqs
 
     if min_freq is not None:
-        min_freq_idx = int(np.round(librosa.hz_to_midi(min_freq) - MIDI_OFFSET))
+        min_freq_idx = int(np.clip(np.round(librosa.hz_to_midi(min_freq) - MIDI_OFFSET), 0, n_freqs))
     if max_freq is not None:
-        max_freq_idx = int(np.round(librosa.hz_to_midi(max_freq) - MIDI_OFFSET))
+        # the bin nearest to max_freq is kept, just as the bin nearest to min_freq is
+        max_freq_idx = int(np.clip(np.round(librosa.hz_to_midi(max_freq) - MIDI_OFFSET) + 1, 0, n_freqs))
 
+    onsets = onsets.copy()
+    frames = frames.copy()
     onsets[:, :min_freq_idx] = 0
     frames[:, :min_freq_idx] = 0
     onsets[:, max_freq_idx:] = 0
