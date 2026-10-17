@@ -15,13 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple
+from typing import List, Optional, Tuple
 
 import librosa
 import numpy as np
+import pretty_midi
 import pytest
 
-from basic_pitch.note_creation import constrain_frequency, drop_overlapping_pitch_bends
+from basic_pitch.note_creation import constrain_frequency, drop_overlapping_pitch_bends, note_events_to_midi
 
 
 def test_drop_overlapping_pitch_bends() -> None:
@@ -93,3 +94,43 @@ def test_constrain_frequency_does_not_modify_inputs() -> None:
     constrain_frequency(onsets, frames, 100.0, 5000.0)
     np.testing.assert_array_equal(onsets, onsets_before)
     np.testing.assert_array_equal(frames, frames_before)
+
+
+def _bends(midi: pretty_midi.PrettyMIDI) -> List[Tuple[float, int]]:
+    return sorted((float(b.time), int(b.pitch)) for b in midi.instruments[0].pitch_bends)
+
+
+def test_note_events_to_midi_resets_pitch_bend_when_bent_note_ends() -> None:
+    events: List[Tuple[float, float, int, float, Optional[List[int]]]] = [
+        (0.0, 1.0, 60, 0.8, [3, 3, 3]),
+        (1.5, 2.5, 64, 0.8, None),
+        (3.0, 3.5, 67, 0.8, [0, 0]),
+    ]
+    bends = _bends(note_events_to_midi(events))
+    after_first_note = [(time, pitch) for time, pitch in bends if 1.0 < time < 3.0]
+    assert len(after_first_note) == 1
+    assert after_first_note[0][1] == 0
+    assert after_first_note[0][0] == pytest.approx(1.0, abs=0.01)
+
+
+def test_note_events_to_midi_does_not_reset_between_back_to_back_bent_notes() -> None:
+    events: List[Tuple[float, float, int, float, Optional[List[int]]]] = [
+        (0.0, 1.0, 60, 0.8, [3, 3]),
+        (1.0, 2.0, 62, 0.8, [-3, -3]),
+    ]
+    bends = _bends(note_events_to_midi(events))
+    assert all(pitch != 0 for time, pitch in bends if 0.9 < time < 1.1)
+    assert bends[-1][1] == 0
+    assert bends[-1][0] == pytest.approx(2.0, abs=0.01)
+
+
+def test_note_events_to_midi_resets_pitch_bend_per_instrument() -> None:
+    events: List[Tuple[float, float, int, float, Optional[List[int]]]] = [
+        (0.0, 1.0, 60, 0.8, [3, 3]),
+        (0.0, 2.0, 64, 0.8, [3, 3]),
+    ]
+    midi = note_events_to_midi(events, multiple_pitch_bends=True)
+    ends = {inst.notes[0].pitch: float(inst.pitch_bends[-1].time) for inst in midi.instruments}
+    assert ends[60] == pytest.approx(1.0, abs=0.01)
+    assert ends[64] == pytest.approx(2.0, abs=0.01)
+    assert all(inst.pitch_bends[-1].pitch == 0 for inst in midi.instruments)

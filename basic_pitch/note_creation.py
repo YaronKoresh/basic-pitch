@@ -245,8 +245,10 @@ def note_events_to_midi(
     instruments: DefaultDict[int, pretty_midi.Instrument] = defaultdict(
         lambda: pretty_midi.Instrument(program=piano_program)
     )
+    bent_notes: DefaultDict[int, List[Tuple[float, float]]] = defaultdict(list)
     for start_time, end_time, note_number, amplitude, pitch_bend in note_events_with_pitch_bends:
-        instrument = instruments[note_number] if multiple_pitch_bends else instruments[0]
+        instrument_key = note_number if multiple_pitch_bends else 0
+        instrument = instruments[instrument_key]
         note = pretty_midi.Note(
             velocity=int(np.round(MIDI_VELOCITY_SCALE * amplitude)),
             pitch=note_number,
@@ -266,6 +268,18 @@ def note_events_to_midi(
         pitch_bend_midi_ticks[pitch_bend_midi_ticks < -N_PITCH_BEND_TICKS] = -N_PITCH_BEND_TICKS
         for pb_time, pb_midi in zip(pitch_bend_times, pitch_bend_midi_ticks):
             instrument.pitch_bends.append(pretty_midi.PitchBend(pb_midi, pb_time))
+        bent_notes[instrument_key].append((start_time, end_time))
+
+    # a pitch bend stays in effect until the next one, so return to neutral when a bent note ends
+    # (unless the next bent note starts right then and sets its own value). The reset is placed one tick
+    # after the note's last bend, since events at the same tick are not guaranteed to keep their order.
+    for instrument_key, spans in bent_notes.items():
+        spans.sort()
+        for i, (_, end_time) in enumerate(spans):
+            reset_time = mid.tick_to_time(mid.time_to_tick(end_time) + 1)
+            if i + 1 < len(spans) and spans[i + 1][0] <= reset_time:
+                continue
+            instruments[instrument_key].pitch_bends.append(pretty_midi.PitchBend(0, reset_time))
     mid.instruments.extend(instruments.values())
 
     return mid
