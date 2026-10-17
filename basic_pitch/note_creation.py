@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import pathlib
 from collections import defaultdict
 from typing import DefaultDict, Dict, List, Optional, Tuple, Union
@@ -47,6 +48,29 @@ ENERGY_TOLERANCE = 11
 MAGIC_ALIGNMENT_OFFSET = 0.0018
 MIDI_VELOCITY_SCALE = 127
 PITCH_BEND_SCALE = 4096
+
+
+def verify_note_options(
+    onset_thresh: float,
+    frame_thresh: float,
+    min_note_len: float,
+    min_freq: Optional[float],
+    max_freq: Optional[float],
+    midi_tempo: float,
+) -> None:
+    """Raise a ValueError naming the first note option that is outside its allowed range."""
+    for name, value in (("onset threshold", onset_thresh), ("frame threshold", frame_thresh)):
+        if not math.isfinite(value) or not 0 <= value <= 1:
+            raise ValueError(f"The {name} must be a number between 0 and 1, got {value}.")
+    if not math.isfinite(min_note_len) or min_note_len < 0:
+        raise ValueError(f"The minimum note length must be a number of at least 0, got {min_note_len}.")
+    for name, value in (("minimum frequency", min_freq), ("maximum frequency", max_freq)):
+        if value is not None and (not math.isfinite(value) or value <= 0):
+            raise ValueError(f"The {name} must be a number above 0 Hz, got {value}.")
+    if min_freq is not None and max_freq is not None and min_freq > max_freq:
+        raise ValueError(f"The minimum frequency ({min_freq}) must not be above the maximum frequency ({max_freq}).")
+    if not math.isfinite(midi_tempo) or midi_tempo <= 0:
+        raise ValueError(f"The MIDI tempo must be a number above 0, got {midi_tempo}.")
 
 
 def model_output_to_notes(
@@ -91,6 +115,8 @@ def model_output_to_notes(
         midi : pretty_midi.PrettyMIDI object
         note_events: A list of note event tuples (start_time_s, end_time_s, pitch_midi, amplitude)
     """
+    verify_note_options(onset_thresh, frame_thresh, min_note_len, min_freq, max_freq, midi_tempo)
+
     frames = output["note"]
     onsets = output["onset"]
     contours = output["contour"]

@@ -462,6 +462,15 @@ def predict(
         The model output, midi data and note events from a single prediction
     """
 
+    infer.verify_note_options(
+        onset_threshold,
+        frame_threshold,
+        minimum_note_length,
+        minimum_frequency,
+        maximum_frequency,
+        midi_tempo,
+    )
+
     with no_tf_warnings():
         print(f"Predicting MIDI for {audio_path}...")
 

@@ -27,6 +27,7 @@ from basic_pitch.note_creation import (
     constrain_frequency,
     drop_overlapping_pitch_bends,
     get_infered_onsets,
+    model_output_to_notes,
     note_events_to_midi,
     output_to_notes_polyphonic,
 )
@@ -246,3 +247,32 @@ def test_note_peak_threshold_can_be_disabled() -> None:
     onsets[20, 40] = 0.9
     notes = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None, note_peak_thresh=0.0)
     assert len(notes) == 1
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"min_freq": -5.0},
+        {"min_freq": 0.0},
+        {"max_freq": -1.0},
+        {"min_freq": float("nan")},
+        {"max_freq": float("inf")},
+        {"min_freq": 500.0, "max_freq": 100.0},
+        {"midi_tempo": 0.0},
+        {"midi_tempo": -120.0},
+        {"min_note_len": -1},
+        {"onset_thresh": 2.0},
+        {"frame_thresh": -0.1},
+        {"onset_thresh": float("nan")},
+    ],
+)
+def test_model_output_to_notes_rejects_out_of_range_options(options: dict) -> None:
+    n_frames = 20
+    output = {
+        "note": np.zeros((n_frames, 88), dtype=np.float32),
+        "onset": np.zeros((n_frames, 88), dtype=np.float32),
+        "contour": np.zeros((n_frames, 264), dtype=np.float32),
+    }
+    kwargs = {"onset_thresh": 0.5, "frame_thresh": 0.3, **options}
+    with pytest.raises(ValueError, match="must"):
+        model_output_to_notes(output, **kwargs)

@@ -137,6 +137,20 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    from basic_pitch.note_creation import verify_note_options
+
+    try:
+        verify_note_options(
+            args.onset_threshold,
+            args.frame_threshold,
+            args.minimum_note_length,
+            args.minimum_frequency,
+            args.maximum_frequency,
+            args.midi_tempo,
+        )
+    except ValueError as error:
+        parser.error(str(error))
+
     print("")
     print("✨✨✨✨✨✨✨✨✨")
     print("✨ Basic Pitch  ✨")
