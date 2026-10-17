@@ -58,7 +58,8 @@ def test_predict() -> None:
 
     # Check that model output has the expected length according to the last frame second computed downstream
     # (via model_frames_to_time) with to a few frames of tolerance
-    audio_length_s = librosa.get_duration(filename=test_audio_path)
+    audio_samples, audio_sr = librosa.load(str(test_audio_path), sr=None, mono=True)
+    audio_length_s = len(audio_samples) / audio_sr
     n_model_output_frames = model_output["note"].shape[0]
     last_frame_s = note_creation.model_frames_to_time(n_model_output_frames)[-1]
     np.testing.assert_allclose(last_frame_s, audio_length_s, atol=2 * ANNOTATION_HOP)
