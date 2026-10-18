@@ -15,16 +15,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pathlib
 import warnings
 from typing import List, Optional, Tuple
 
 import librosa
+import mido
 import numpy as np
 import pretty_midi
 import pytest
 
 from basic_pitch.note_creation import (
     amplitude_to_velocity,
+    assign_pitch_bend_instruments,
     constrain_frequency,
     drop_overlapping_pitch_bends,
     get_infered_onsets,
@@ -144,6 +147,54 @@ def test_note_events_to_midi_resets_pitch_bend_per_instrument() -> None:
     assert ends[60] == pytest.approx(1.0, abs=0.01)
     assert ends[64] == pytest.approx(2.0, abs=0.01)
     assert all(inst.pitch_bends[-1].pitch == 0 for inst in midi.instruments)
+
+
+def test_note_events_to_midi_keeps_simultaneous_bent_notes_on_separate_channels_with_many_pitches(
+    tmp_path: pathlib.Path,
+) -> None:
+    # 15 short notes fill every usable channel; the 16th pitch then sounds together with the 1st pitch
+    events: List[Tuple[float, float, int, float, Optional[List[int]]]] = [
+        (0.1 * i, 0.1 * i + 0.05, 40 + i, 0.8, [0, 0]) for i in range(15)
+    ]
+    events.append((10.0, 11.0, 40, 0.8, [6, 6, 6]))
+    events.append((10.0, 11.0, 55, 0.8, [-6, -6, -6]))
+    midi = note_events_to_midi(events, multiple_pitch_bends=True)
+    path = tmp_path / "many_pitches.mid"
+    midi.write(str(path))
+    # a pitch bend applies to a whole channel, so the two late notes need different channels
+    channel_of_late_note = {}
+    for track in mido.MidiFile(str(path)).tracks:
+        elapsed_s = 0.0
+        for message in mido.merge_tracks([track]):
+            elapsed_s += mido.tick2second(message.time, 220, 500000)
+            if message.type == "note_on" and message.velocity > 0 and elapsed_s >= 10.0:
+                channel_of_late_note[message.note] = message.channel
+    assert set(channel_of_late_note) == {40, 55}
+    assert channel_of_late_note[40] != channel_of_late_note[55]
+
+
+def test_assign_pitch_bend_instruments_uses_at_most_15_instruments_and_never_overlaps_notes_in_one() -> None:
+    rng = np.random.default_rng(3)
+    starts = np.sort(rng.uniform(0, 30, size=200))
+    events: List[Tuple[float, float, int, float, Optional[List[int]]]] = [
+        (float(s), float(s + rng.uniform(0.05, 0.4)), int(rng.integers(21, 109)), 0.8, [1, 2]) for s in starts
+    ]
+    keys = assign_pitch_bend_instruments(events)
+    assert len(set(keys)) <= 15
+    for key in set(keys):
+        notes = sorted(event[:2] for event, k in zip(events, keys) if k == key)
+        assert all(previous[1] <= following[0] for previous, following in zip(notes, notes[1:]))
+
+
+def test_assign_pitch_bend_instruments_gives_each_pitch_its_own_instrument_when_channels_suffice() -> None:
+    events: List[Tuple[float, float, int, float, Optional[List[int]]]] = [
+        (0.0, 1.0, 60, 0.8, [1]),
+        (2.0, 3.0, 64, 0.8, [1]),
+        (4.0, 5.0, 60, 0.8, [1]),
+    ]
+    keys = assign_pitch_bend_instruments(events)
+    assert keys[0] == keys[2]
+    assert keys[0] != keys[1]
 
 
 def test_get_infered_onsets_with_silent_frames_returns_onsets_without_warning() -> None:

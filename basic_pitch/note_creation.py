@@ -42,6 +42,7 @@ MIDI_OFFSET = 21
 SONIFY_FS = 3000
 N_PITCH_BEND_TICKS = 8192
 MAX_FREQ_IDX = 87
+MAX_MIDI_PITCH_BEND_INSTRUMENTS = 15  # 16 MIDI channels, minus the percussion channel
 
 DEFAULT_MIN_NOTE_LEN = 11
 ENERGY_TOLERANCE = 11
@@ -283,7 +284,8 @@ def note_events_to_midi(
             where amplitude is a number between 0 and 1
         multiple_pitch_bends : If True, allow overlapping notes to have pitch bends
             Note: this will assign each pitch to its own midi instrument, as midi does not yet
-            support per-note pitch bends
+            support per-note pitch bends. A midi file has 15 usable channels, so with more pitches
+            than that, notes that do not sound at the same time share an instrument.
 
     Returns:
         pretty_midi.PrettyMIDI() object
@@ -298,8 +300,14 @@ def note_events_to_midi(
         lambda: pretty_midi.Instrument(program=piano_program)
     )
     bent_notes: DefaultDict[int, List[Tuple[float, float]]] = defaultdict(list)
-    for start_time, end_time, note_number, amplitude, pitch_bend in note_events_with_pitch_bends:
-        instrument_key = note_number if multiple_pitch_bends else 0
+    instrument_keys = (
+        assign_pitch_bend_instruments(note_events_with_pitch_bends)
+        if multiple_pitch_bends
+        else [0] * len(note_events_with_pitch_bends)
+    )
+    for (start_time, end_time, note_number, amplitude, pitch_bend), instrument_key in zip(
+        note_events_with_pitch_bends, instrument_keys
+    ):
         instrument = instruments[instrument_key]
         note = pretty_midi.Note(
             velocity=amplitude_to_velocity(amplitude),
@@ -335,6 +343,38 @@ def note_events_to_midi(
     mid.instruments.extend(instruments.values())
 
     return mid
+
+
+def assign_pitch_bend_instruments(
+    note_events: List[Tuple[float, float, int, float, Optional[List[int]]]],
+) -> List[int]:
+    """Choose an instrument for every note, so that notes sharing a MIDI channel do not sound at the same time.
+
+    A MIDI file has 15 usable channels and a pitch bend applies to a whole channel, so each pitch gets its own
+    instrument while there are channels left. After that, a note goes to an instrument that is idle when the
+    note starts. When every instrument is busy, the note goes to the one that becomes idle first.
+
+    Args:
+        note_events: Note event tuples (start_time_seconds, end_time_seconds, pitch_midi, amplitude, pitch_bends).
+
+    Returns:
+        The instrument key of each note, in the order of note_events.
+    """
+    keys = [0] * len(note_events)
+    busy_until: Dict[int, float] = {}  # instrument key -> time its latest note ends
+    pitch_key: Dict[int, int] = {}
+    for index in sorted(range(len(note_events)), key=lambda i: note_events[i][0]):
+        start_time, end_time, note_number = note_events[index][:3]
+        key = pitch_key.get(note_number)
+        if key is None or busy_until[key] > start_time:
+            if len(busy_until) < MAX_MIDI_PITCH_BEND_INSTRUMENTS:
+                key = len(busy_until)
+            else:
+                key = min(busy_until, key=lambda k: (busy_until[k] > start_time, busy_until[k], k))
+        pitch_key.setdefault(note_number, key)
+        busy_until[key] = max(busy_until.get(key, end_time), end_time)
+        keys[index] = key
+    return keys
 
 
 def drop_overlapping_pitch_bends(
