@@ -61,3 +61,22 @@ def test_invalid_sonification_samplerate_exits_with_usage_error(
         assert list(pathlib.Path(tmpdir).iterdir()) == []
     assert exit_info.value.code == 2
     assert "sonification sample rate" in capsys.readouterr().err
+
+
+def test_unloadable_model_path_exits_with_usage_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with pytest.raises(SystemExit) as exit_info:
+            run_main(
+                monkeypatch,
+                tmpdir,
+                str(RESOURCES_PATH / "vocadito_10.wav"),
+                "--model-path",
+                str(pathlib.Path(tmpdir) / "missing-model"),
+            )
+        assert list(pathlib.Path(tmpdir).iterdir()) == []
+    assert exit_info.value.code == 2
+    captured = capsys.readouterr()
+    assert "cannot be loaded" in captured.err
+    assert "Traceback" not in captured.err

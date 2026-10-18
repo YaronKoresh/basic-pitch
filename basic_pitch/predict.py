@@ -178,10 +178,13 @@ def main() -> None:
     except ValueError as error:
         parser.error(str(error))
 
-    if args.model_serialization:
-        model = Model(build_icassp_2022_model_path(FilenameSuffix[args.model_serialization]))
-    else:
-        model = Model(args.model_path)
+    try:
+        if args.model_serialization:
+            model = Model(build_icassp_2022_model_path(FilenameSuffix[args.model_serialization]))
+        else:
+            model = Model(args.model_path)
+    except ValueError as error:
+        parser.error(str(error))
 
     try:
         predict_and_save(
