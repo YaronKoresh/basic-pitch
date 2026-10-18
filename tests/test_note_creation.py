@@ -30,6 +30,7 @@ from basic_pitch.note_creation import (
     model_output_to_notes,
     note_events_to_midi,
     output_to_notes_polyphonic,
+    sonify_salience,
 )
 
 
@@ -276,3 +277,21 @@ def test_model_output_to_notes_rejects_out_of_range_options(options: dict) -> No
     kwargs = {"onset_thresh": 0.5, "frame_thresh": 0.3, **options}
     with pytest.raises(ValueError, match="must"):
         model_output_to_notes(output, **kwargs)
+
+
+def test_sonify_salience_does_not_modify_its_input() -> None:
+    gram = np.random.default_rng(0).random((264, 20))
+    original = gram.copy()
+    sonify_salience(gram, 3)
+    np.testing.assert_array_equal(gram, original)
+
+
+@pytest.mark.parametrize("n_times", [0, 1])
+def test_sonify_salience_handles_grams_with_fewer_than_two_frames(n_times: int, tmp_path) -> None:  # type: ignore
+    gram = np.ones((264, n_times))
+    save_path = tmp_path / "salience.wav"
+    audio, sample_rate = sonify_salience(gram, 3, save_path=str(save_path))
+    assert sample_rate == 3000
+    assert not np.any(audio)
+    assert (len(audio) == 0) == (n_times == 0)
+    assert save_path.exists()

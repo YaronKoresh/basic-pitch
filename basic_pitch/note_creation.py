@@ -175,7 +175,7 @@ def sonify_salience(
 
     Args:
         gram: A matrix of pitch salience values with range 0-1, with shape (n_freqs, n_times).
-            The frequencies are logarithmically spaced.
+            The frequencies are logarithmically spaced. The matrix is not modified.
         semitone_resolution: The number of bins per semitone in gram.
         save_path: Optional location to save the sonified salience.
         thresh: Salience values below thresh will not be sonified. Used to increase the speed of this function.
@@ -196,10 +196,15 @@ def sonify_salience(
         sr=AUDIO_SAMPLE_RATE,
         hop_length=AUDIO_N_SAMPLES / ANNOT_N_FRAMES,  # THIS IS THE CORRECT HOP!!
     )
-    gram[gram < thresh] = 0
-    y = mir_eval.sonify.time_frequency(gram[:max_freq_idx, :], freqs[:max_freq_idx], times, fs=SONIFY_FS)
+    gram = np.where(gram < thresh, 0, gram)
+    if gram.shape[1] < 2:
+        # mir_eval cannot infer a duration from fewer than two time stamps, so a gram this short is silent
+        frame_s = (AUDIO_N_SAMPLES / ANNOT_N_FRAMES) / AUDIO_SAMPLE_RATE
+        y = np.zeros(int(np.round(gram.shape[1] * frame_s * SONIFY_FS)))
+    else:
+        y = mir_eval.sonify.time_frequency(gram[:max_freq_idx, :], freqs[:max_freq_idx], times, fs=SONIFY_FS)
     if save_path:
-        y_resamp = resampy.resample(y, SONIFY_FS, 44100)
+        y_resamp = resampy.resample(y, SONIFY_FS, 44100) if len(y) else y
         wavfile.write(save_path, 44100, y_resamp)
 
     return y, SONIFY_FS
