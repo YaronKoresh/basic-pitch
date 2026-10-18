@@ -25,6 +25,9 @@ import numpy as np
 import pretty_midi
 import pytest
 
+from basic_pitch.constants import AUDIO_SAMPLE_RATE, FFT_HOP
+from basic_pitch.inference import DEFAULT_MINIMUM_NOTE_LENGTH_MS
+
 from basic_pitch.note_creation import (
     amplitude_to_velocity,
     assign_pitch_bend_instruments,
@@ -536,3 +539,29 @@ def test_find_onset_peaks_accepts_the_first_frame_and_ignores_silence() -> None:
     times, freqs = find_onset_peaks(onsets)
     assert list(zip(times.tolist(), freqs.tolist())) == [(0, 0)]
     assert len(find_onset_peaks(np.zeros((0, 88)))[0]) == 0
+
+
+def _short_note_activation(length: int) -> Tuple[np.ndarray, np.ndarray]:
+    frames = np.zeros((100, 88))
+    onsets = np.zeros((100, 88))
+    frames[20 : 20 + length, 40] = 0.9
+    onsets[20, 40] = 0.9
+    return onsets, frames
+
+
+def test_note_exactly_as_long_as_the_minimum_note_length_is_kept() -> None:
+    onsets, frames = _short_note_activation(11)
+    notes = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None, melodia_trick=False)
+    assert [(n[0], n[1], n[2]) for n in notes] == [(20, 31, 40 + 21)]
+
+
+def test_note_shorter_than_the_minimum_note_length_is_dropped() -> None:
+    onsets, frames = _short_note_activation(10)
+    assert output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None, melodia_trick=False) == []
+
+
+def test_default_minimum_note_length_keeps_a_sixteenth_note_at_115_bpm() -> None:
+    sixteenth_s = 60 / 115 / 4
+    min_note_len = int(np.round(DEFAULT_MINIMUM_NOTE_LENGTH_MS / 1000 * (AUDIO_SAMPLE_RATE / FFT_HOP)))
+    # a played note sounds a little shorter than its grid slot
+    assert int(0.9 * sixteenth_s * AUDIO_SAMPLE_RATE / FFT_HOP) >= min_note_len

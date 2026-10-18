@@ -633,7 +633,7 @@ def output_to_notes_polyphonic(
         i -= k  # go back to frame above threshold
 
         # if the note is too short, skip it
-        if i - note_start_idx <= min_note_len:
+        if i - note_start_idx < max(min_note_len, 1):
             continue
 
         remaining_energy[note_start_idx:i, freq_idx] = 0
@@ -711,7 +711,7 @@ def output_to_notes_polyphonic(
             assert i_start >= 0, "{}".format(i_start)
             assert i_end < n_frames
 
-            if i_end - i_start <= min_note_len:
+            if i_end - i_start < max(min_note_len, 1):
                 # note is too short, skip it
                 continue
 
