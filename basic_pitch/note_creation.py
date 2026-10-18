@@ -87,6 +87,16 @@ def verify_sonification_samplerate(samplerate: int) -> None:
         raise ValueError(f"The sonification sample rate must be a whole number of Hz above 0, got {samplerate}.")
 
 
+def verify_outputs_requested(save_midi: bool, sonify_midi: bool, save_model_outputs: bool, save_notes: bool) -> None:
+    """Raise a ValueError if no output file would be written."""
+    if not (save_midi or sonify_midi or save_model_outputs or save_notes):
+        raise ValueError(
+            "No output was requested, so nothing would be saved. Do not turn off the MIDI file "
+            "(--no-save-midi) unless another output is requested: --sonify-midi, --save-model-outputs "
+            "or --save-note-events."
+        )
+
+
 def model_output_to_notes(
     output: Dict[str, np.array],
     onset_thresh: float,

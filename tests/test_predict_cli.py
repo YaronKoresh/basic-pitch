@@ -123,3 +123,14 @@ def test_audio_files_with_the_same_output_name_exit_with_usage_error(
             run_main(monkeypatch, tmpdir, str(first), str(second))
     assert exit_info.value.code == 2
     assert "would both write" in capsys.readouterr().err
+
+
+def test_no_output_requested_exits_with_usage_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with pytest.raises(SystemExit) as exit_info:
+            run_main(monkeypatch, tmpdir, str(RESOURCES_PATH / "vocadito_10.wav"), "--no-save-midi")
+        assert list(pathlib.Path(tmpdir).iterdir()) == []
+    assert exit_info.value.code == 2
+    assert "nothing would be saved" in capsys.readouterr().err

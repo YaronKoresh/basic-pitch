@@ -144,9 +144,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    from basic_pitch.note_creation import verify_note_options, verify_sonification_samplerate
+    from basic_pitch.note_creation import (
+        verify_note_options,
+        verify_outputs_requested,
+        verify_sonification_samplerate,
+    )
 
     try:
+        verify_outputs_requested(args.save_midi, args.sonify_midi, args.save_model_outputs, args.save_note_events)
         if args.sonify_midi:
             verify_sonification_samplerate(args.sonification_samplerate)
         verify_note_options(

@@ -578,6 +578,7 @@ def predict_and_save(
         debug_file: An optional path to output debug data to. Useful for testing/verification.
         sonification_samplerate: Sample rate for rendering audio from MIDI.
     """
+    infer.verify_outputs_requested(save_midi, sonify_midi, save_model_outputs, save_notes)
     if sonify_midi:
         infer.verify_sonification_samplerate(sonification_samplerate)
     infer.verify_note_options(

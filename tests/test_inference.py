@@ -333,3 +333,17 @@ def test_verify_unique_output_names_allows_distinct_names_and_repeated_paths(tmp
     inference.verify_unique_output_names([tmp_path / "one.wav", tmp_path / "two.mp3", tmp_path / "one.wav"])
     with pytest.raises(ValueError, match="would both write"):
         inference.verify_unique_output_names([tmp_path / "song.wav", tmp_path / "song.mp3"])
+
+
+def test_predict_and_save_rejects_a_call_that_saves_nothing(tmp_path: pathlib.Path) -> None:
+    with pytest.raises(ValueError, match="nothing would be saved"):
+        inference.predict_and_save(
+            [RESOURCES_PATH / "vocadito_10.wav"],
+            tmp_path,
+            False,
+            False,
+            False,
+            False,
+            model_or_model_path=ICASSP_2022_MODEL_PATH,
+        )
+    assert list(tmp_path.iterdir()) == []
