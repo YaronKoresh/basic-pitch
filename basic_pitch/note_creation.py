@@ -50,6 +50,9 @@ MAGIC_ALIGNMENT_OFFSET = 0.0018
 MIDI_VELOCITY_SCALE = 127
 MIDI_MIN_NOTE_VELOCITY = 1  # a note-on with velocity 0 is a note-off, so the note would vanish from the file
 PITCH_BEND_SCALE = 4096
+MICROSECONDS_PER_MINUTE = 60_000_000
+MIDI_MAX_TEMPO_MICROSECONDS = 0xFFFFFF  # a MIDI tempo event stores the microseconds per beat in 3 bytes
+MIDI_MAX_TICK = 10_000_000  # pretty_midi treats a file with a later event as corrupt
 
 
 def verify_note_options(
@@ -73,6 +76,12 @@ def verify_note_options(
         raise ValueError(f"The minimum frequency ({min_freq}) must not be above the maximum frequency ({max_freq}).")
     if not math.isfinite(midi_tempo) or midi_tempo <= 0:
         raise ValueError(f"The MIDI tempo must be a number above 0, got {midi_tempo}.")
+    if not 1 <= round(MICROSECONDS_PER_MINUTE / midi_tempo) <= MIDI_MAX_TEMPO_MICROSECONDS:
+        raise ValueError(
+            "The MIDI tempo must be a number of beats per minute that a MIDI file can store, "
+            f"between {MICROSECONDS_PER_MINUTE / MIDI_MAX_TEMPO_MICROSECONDS:.2f} and {MICROSECONDS_PER_MINUTE}, "
+            f"got {midi_tempo}."
+        )
 
 
 def amplitude_to_velocity(amplitude: float) -> int:
@@ -306,6 +315,14 @@ def note_events_to_midi(
 
     """
     mid = pretty_midi.PrettyMIDI(initial_tempo=midi_tempo)
+    last_tick = max((end_time for _, end_time, *_ in note_events_with_pitch_bends), default=0) * (
+        midi_tempo * mid.resolution / 60
+    )
+    if last_tick + 1 >= MIDI_MAX_TICK:
+        raise ValueError(
+            f"The MIDI tempo must be lower for audio this long: at {midi_tempo} beats per minute the last note "
+            f"ends after {MIDI_MAX_TICK} ticks, more than a MIDI file can hold."
+        )
     if not multiple_pitch_bends:
         note_events_with_pitch_bends = drop_overlapping_pitch_bends(note_events_with_pitch_bends)
 

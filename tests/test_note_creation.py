@@ -318,6 +318,8 @@ def test_note_peak_threshold_can_be_disabled() -> None:
         {"min_freq": 500.0, "max_freq": 100.0},
         {"midi_tempo": 0.0},
         {"midi_tempo": -120.0},
+        {"midi_tempo": 1.0},
+        {"midi_tempo": 1e9},
         {"min_note_len": -1},
         {"onset_thresh": 2.0},
         {"frame_thresh": -0.1},
@@ -565,3 +567,14 @@ def test_default_minimum_note_length_keeps_a_sixteenth_note_at_115_bpm() -> None
     min_note_len = int(np.round(DEFAULT_MINIMUM_NOTE_LENGTH_MS / 1000 * (AUDIO_SAMPLE_RATE / FFT_HOP)))
     # a played note sounds a little shorter than its grid slot
     assert int(0.9 * sixteenth_s * AUDIO_SAMPLE_RATE / FFT_HOP) >= min_note_len
+
+
+def test_note_events_to_midi_rejects_tempo_that_overflows_midi_ticks() -> None:
+    with pytest.raises(ValueError, match="must be lower"):
+        note_events_to_midi([(0.0, 600.0, 60, 0.5, [0, 3, 0])], midi_tempo=5000)
+
+
+def test_note_events_to_midi_writes_lowest_and_high_tempos(tmp_path: pathlib.Path) -> None:
+    for tempo in (3.58, 120, 1000):
+        midi = note_events_to_midi([(0.0, 60.0, 60, 0.5, [0, 3, 0])], midi_tempo=tempo)
+        midi.write(str(tmp_path / "tempo.mid"))
