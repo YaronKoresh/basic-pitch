@@ -278,9 +278,9 @@ def get_pitch_bends(
         )
         pb_shift = n_bins_tolerance - np.max([0, n_bins_tolerance - freq_idx])
 
-        bends: Optional[List[int]] = list(
-            np.argmax(pitch_bend_submatrix, axis=1) - pb_shift
-        )  # this is in units of 1/3 semitones
+        # a frame with no contour activity near the note has no bend, instead of the first bin of the window
+        peak_bins = np.where(pitch_bend_submatrix.max(axis=1) > 0, np.argmax(pitch_bend_submatrix, axis=1), pb_shift)
+        bends: Optional[List[int]] = list(peak_bins - pb_shift)  # this is in units of 1/3 semitones
         note_events_with_pitch_bends.append((start_idx, end_idx, pitch_midi, amplitude, bends))
     return note_events_with_pitch_bends
 

@@ -31,6 +31,7 @@ from basic_pitch.note_creation import (
     constrain_frequency,
     drop_overlapping_pitch_bends,
     get_infered_onsets,
+    get_pitch_bends,
     model_output_to_notes,
     note_events_to_midi,
     output_to_notes_polyphonic,
@@ -427,3 +428,18 @@ def test_output_to_notes_polyphonic_suppresses_harmonics_by_default() -> None:
     assert [note[2] for note in kept] == [30 + 21]
     both = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None, suppress_harmonics=False)
     assert [note[2] for note in both] == [30 + 21, 42 + 21]
+
+
+@pytest.mark.parametrize("pitch", [21, 60, 108])
+def test_get_pitch_bends_without_contour_activity_has_no_bend(pitch: int) -> None:
+    contours = np.zeros((20, 264))
+    (event,) = get_pitch_bends(contours, [(2, 10, pitch, 0.5)])
+    assert list(event[4]) == [0] * 8
+
+
+def test_get_pitch_bends_follows_contour_peak() -> None:
+    contours = np.zeros((20, 264))
+    centre = int(np.round(12.0 * 3 * np.log2(librosa.midi_to_hz(60) / librosa.midi_to_hz(21))))
+    contours[2:10, centre + 3] = 1.0
+    (event,) = get_pitch_bends(contours, [(2, 10, 60, 0.5)])
+    assert list(event[4]) == [3] * 8
