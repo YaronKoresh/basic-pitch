@@ -96,6 +96,7 @@ Optionally, you may append any of the following flags to your prediction command
 - `--save-model-outputs` to additionally save raw model outputs as an NPZ file.
 - `--save-note-events` to additionally save the predicted note events as a CSV file.
 - `--no-save-midi` to skip the MIDI file, e.g. when you only want the note events or the model outputs.
+- `--keep-harmonics` to keep the weaker notes that sound an octave (or 19 or 24 semitones) above a note starting at the same time. By default these overtones are dropped.
 
 If you want to use a non-default model type (e.g., use CoreML instead of TF), use the `--model-serialization` argument. The CLI will change the loaded model to the type you prefer.
 

@@ -111,6 +111,7 @@ def model_output_to_notes(
     midi_tempo: float = 120,
     melodia_peak_thresh: float = 0.5,
     note_peak_thresh: float = 0.4,
+    suppress_harmonics: bool = True,
 ) -> Tuple[pretty_midi.PrettyMIDI, List[Tuple[float, float, int, float, Optional[List[int]]]]]:
     """Convert model output to MIDI
 
@@ -134,6 +135,7 @@ def model_output_to_notes(
         melodia_peak_thresh: A note found by the melodia step only (without an onset of at least onset_thresh)
             is kept only if its frame activation reaches this value.
         note_peak_thresh: A note is dropped if its frame activation never reaches this value. Use 0 to keep every note.
+        suppress_harmonics: Drop weaker notes that sound 12, 19 or 24 semitones above a note starting at the same time.
 
     Returns:
         midi : pretty_midi.PrettyMIDI object
@@ -157,6 +159,7 @@ def model_output_to_notes(
         melodia_trick=melodia_trick,
         melodia_peak_thresh=melodia_peak_thresh,
         note_peak_thresh=note_peak_thresh,
+        suppress_harmonics=suppress_harmonics,
     )
     if include_pitch_bends:
         estimated_notes_with_pitch_bend = get_pitch_bends(contours, estimated_notes)
@@ -482,6 +485,53 @@ def model_frames_to_time(n_frames: int) -> np.ndarray:
     return times
 
 
+HARMONIC_INTERVALS = (12, 19, 24)
+HARMONIC_MAX_AMPLITUDE_RATIO = 0.7
+HARMONIC_ONSET_TOLERANCE_FRAMES = 5
+
+
+def suppress_harmonic_notes(
+    note_events: List[Tuple[int, int, int, float]],
+    max_amplitude_ratio: float = HARMONIC_MAX_AMPLITUDE_RATIO,
+    onset_tolerance_frames: int = HARMONIC_ONSET_TOLERANCE_FRAMES,
+) -> List[Tuple[int, int, int, float]]:
+    """Drop notes that are the overtone of a stronger note starting at the same time.
+
+    A note is dropped when another note starts within `onset_tolerance_frames` of it, sounds 12, 19 or 24
+    semitones lower, is louder by more than `max_amplitude_ratio`, and does not end before it.
+
+    Args:
+        note_events: List of (start_frame, end_frame, pitch_midi, amplitude) tuples.
+        max_amplitude_ratio: A note is only dropped if its amplitude is at most this fraction of the lower note's.
+        onset_tolerance_frames: Largest start difference, in frames, for two notes to count as simultaneous.
+
+    Returns:
+        The note events without the overtones, in their original order.
+    """
+    by_pitch: DefaultDict[int, List[Tuple[int, int, int, float]]] = defaultdict(list)
+    for note in note_events:
+        by_pitch[note[2]].append(note)
+
+    kept = []
+    for note in note_events:
+        start, end, pitch, amplitude = note
+        is_overtone = False
+        for interval in HARMONIC_INTERVALS:
+            for lower in by_pitch.get(pitch - interval, ()):
+                if (
+                    abs(lower[0] - start) <= onset_tolerance_frames
+                    and lower[1] + onset_tolerance_frames >= end
+                    and amplitude <= max_amplitude_ratio * lower[3]
+                ):
+                    is_overtone = True
+                    break
+            if is_overtone:
+                break
+        if not is_overtone:
+            kept.append(note)
+    return kept
+
+
 def output_to_notes_polyphonic(
     frames: np.array,
     onsets: np.array,
@@ -495,6 +545,7 @@ def output_to_notes_polyphonic(
     energy_tol: int = 11,
     melodia_peak_thresh: float = 0.5,
     note_peak_thresh: float = 0.4,
+    suppress_harmonics: bool = True,
 ) -> List[Tuple[int, int, int, float]]:
     """Decode raw model output to polyphonic note events
 
@@ -512,6 +563,7 @@ def output_to_notes_polyphonic(
         melodia_peak_thresh: A note found by the melodia trick without an onset of at least onset_thresh is dropped
             unless its frame activation reaches this value.
         note_peak_thresh: A note is dropped if its frame activation never reaches this value. Use 0 to keep every note.
+        suppress_harmonics: Drop weaker notes that sound 12, 19 or 24 semitones above a note starting at the same time.
 
     Returns:
         list of tuples [(start_time_frames, end_time_frames, pitch_midi, amplitude)]
@@ -651,6 +703,9 @@ def output_to_notes_polyphonic(
                     amplitude,
                 )
             )
+
+    if suppress_harmonics:
+        note_events = suppress_harmonic_notes(note_events)
 
     # onsets are decoded from the end of the audio backwards and melodia notes come last
     note_events.sort(key=lambda note: (note[0], note[2], note[1]))

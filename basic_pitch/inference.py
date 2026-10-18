@@ -486,6 +486,7 @@ def predict(
     melodia_trick: bool = True,
     debug_file: Optional[pathlib.Path] = None,
     midi_tempo: float = DEFAULT_MINIMUM_MIDI_TEMPO,
+    suppress_harmonics: bool = True,
 ) -> Tuple[
     Dict[str, np.array],
     pretty_midi.PrettyMIDI,
@@ -504,6 +505,8 @@ def predict(
         multiple_pitch_bends: If True, allow overlapping notes in midi file to have pitch bends.
         melodia_trick: Use the melodia post-processing step.
         debug_file: An optional path to output debug data to. Useful for testing/verification.
+        midi_tempo: The tempo of the MIDI file.
+        suppress_harmonics: Drop weaker notes that sound 12, 19 or 24 semitones above a note starting at the same time.
     Returns:
         The model output, midi data and note events from a single prediction
     """
@@ -532,6 +535,7 @@ def predict(
             multiple_pitch_bends=multiple_pitch_bends,
             melodia_trick=melodia_trick,
             midi_tempo=midi_tempo,
+            suppress_harmonics=suppress_harmonics,
         )
 
     if debug_file:
@@ -579,6 +583,7 @@ def predict_and_save(
     debug_file: Optional[pathlib.Path] = None,
     sonification_samplerate: int = DEFAULT_SONIFICATION_SAMPLERATE,
     midi_tempo: float = DEFAULT_MINIMUM_MIDI_TEMPO,
+    suppress_harmonics: bool = True,
 ) -> None:
     """Make a prediction and save the results to file.
 
@@ -599,6 +604,8 @@ def predict_and_save(
         melodia_trick: Use the melodia post-processing step.
         debug_file: An optional path to output debug data to. Useful for testing/verification.
         sonification_samplerate: Sample rate for rendering audio from MIDI.
+        midi_tempo: The tempo of the MIDI file.
+        suppress_harmonics: Drop weaker notes that sound 12, 19 or 24 semitones above a note starting at the same time.
     """
     infer.verify_outputs_requested(save_midi, sonify_midi, save_model_outputs, save_notes)
     if sonify_midi:
@@ -651,6 +658,7 @@ def predict_and_save(
                 melodia_trick,
                 debug_file,
                 midi_tempo,
+                suppress_harmonics,
             )
         except Exception as e:
             # an audio file that cannot be decoded must not stop the files after it

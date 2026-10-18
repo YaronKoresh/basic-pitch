@@ -35,6 +35,7 @@ from basic_pitch.note_creation import (
     note_events_to_midi,
     output_to_notes_polyphonic,
     sonify_salience,
+    suppress_harmonic_notes,
 )
 
 
@@ -388,3 +389,41 @@ def test_model_output_to_notes_returns_chronological_note_events() -> None:
     starts = [e[0] for e in events]
     assert len(starts) == 3
     assert starts == sorted(starts)
+
+
+def test_suppress_harmonic_notes_drops_weaker_octave_note() -> None:
+    events = [(10, 40, 40, 0.8), (10, 30, 52, 0.4)]
+    assert suppress_harmonic_notes(events) == [(10, 40, 40, 0.8)]
+
+
+@pytest.mark.parametrize("interval", [12, 19, 24])
+def test_suppress_harmonic_notes_covers_octave_fifth_and_double_octave(interval: int) -> None:
+    events = [(10, 40, 40, 0.8), (10, 30, 40 + interval, 0.4)]
+    assert suppress_harmonic_notes(events) == [(10, 40, 40, 0.8)]
+
+
+def test_suppress_harmonic_notes_keeps_octave_of_similar_strength() -> None:
+    events = [(10, 40, 40, 0.8), (10, 40, 52, 0.7)]
+    assert suppress_harmonic_notes(events) == events
+
+
+def test_suppress_harmonic_notes_keeps_notes_at_other_times_and_other_intervals() -> None:
+    events = [(10, 40, 40, 0.8), (30, 60, 52, 0.2), (10, 40, 47, 0.2)]
+    assert suppress_harmonic_notes(events) == events
+
+
+def test_suppress_harmonic_notes_keeps_a_note_that_outlasts_the_lower_note() -> None:
+    events = [(10, 20, 40, 0.8), (10, 60, 52, 0.4)]
+    assert suppress_harmonic_notes(events) == events
+
+
+def test_output_to_notes_polyphonic_suppresses_harmonics_by_default() -> None:
+    frames = np.zeros((100, 88))
+    onsets = np.zeros((100, 88))
+    for row, peak in ((30, 0.9), (42, 0.5)):
+        frames[20:70, row] = peak
+        onsets[20, row] = 0.9
+    kept = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None)
+    assert [note[2] for note in kept] == [30 + 21]
+    both = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None, suppress_harmonics=False)
+    assert [note[2] for note in both] == [30 + 21, 42 + 21]

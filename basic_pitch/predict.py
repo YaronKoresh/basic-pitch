@@ -142,6 +142,12 @@ def main() -> None:
         action="store_true",
         help="Skip the melodia trick.",
     )
+    parser.add_argument(
+        "--keep-harmonics",
+        default=False,
+        action="store_true",
+        help="Keep weaker notes that sound an octave (or 19 or 24 semitones) above a note starting at the same time.",
+    )
     args = parser.parse_args()
 
     from basic_pitch.note_creation import (
@@ -219,6 +225,7 @@ def main() -> None:
             pathlib.Path(args.debug_file) if args.debug_file else None,
             args.sonification_samplerate,
             args.midi_tempo,
+            not args.keep_harmonics,
         )
         print("\n✨ Done ✨\n")
     except IOError as ioe:
