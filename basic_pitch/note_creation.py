@@ -394,7 +394,8 @@ def drop_overlapping_pitch_bends(
     note_events_with_pitch_bends: List[Tuple[float, float, int, float, Optional[List[int]]]],
 ) -> List[Tuple[float, float, int, float, Optional[List[int]]]]:
     """Drop pitch bends from any notes that overlap in time with another note"""
-    note_events = sorted(note_events_with_pitch_bends)
+    # the pitch bends are left out of the sort key, as a list cannot be compared with None
+    note_events = sorted(note_events_with_pitch_bends, key=lambda note: note[:4])
     for i in range(len(note_events) - 1):
         for j in range(i + 1, len(note_events)):
             if note_events[j][0] >= note_events[i][1]:  # start j > end i

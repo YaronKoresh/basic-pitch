@@ -443,3 +443,14 @@ def test_get_pitch_bends_follows_contour_peak() -> None:
     contours[2:10, centre + 3] = 1.0
     (event,) = get_pitch_bends(contours, [(2, 10, 60, 0.5)])
     assert list(event[4]) == [3] * 8
+
+
+def test_note_events_to_midi_with_notes_tied_on_start_end_pitch_and_amplitude() -> None:
+    tied_notes: List[Tuple[float, float, int, float, Optional[List[int]]]] = [
+        (0.0, 1.0, 60, 0.5, [1, 2]),
+        (0.0, 1.0, 60, 0.5, None),
+    ]
+    for events in (tied_notes, tied_notes[::-1]):
+        midi = note_events_to_midi(events)
+        assert len(midi.instruments[0].notes) == 2
+        assert not any(bend.pitch for bend in midi.instruments[0].pitch_bends)
