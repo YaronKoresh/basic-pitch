@@ -361,3 +361,30 @@ def test_note_events_to_midi_output_can_be_written_with_out_of_range_amplitude(a
     midi = note_events_to_midi([(0.0, 1.0, 60, amplitude, None)])
     midi.write(str(tmp_path / "out.mid"))
     assert 0 <= midi.instruments[0].notes[0].velocity <= 127
+
+
+def test_note_events_are_sorted_by_start_time() -> None:
+    onsets = np.zeros((300, 88))
+    frames = np.zeros((300, 88))
+    for start, pitch_idx in [(20, 40), (100, 45), (200, 38)]:
+        frames[start : start + 50, pitch_idx] = 0.8
+        onsets[start, pitch_idx] = 0.9
+    # a note found only by the melodia step, earlier than the last note found by onset
+    frames[60:90, 60] = 0.8
+    notes = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None)
+    assert len(notes) == 4
+    assert [n[0] for n in notes] == sorted(n[0] for n in notes)
+    assert [n[2] for n in notes] == [40 + 21, 60 + 21, 45 + 21, 38 + 21]
+
+
+def test_model_output_to_notes_returns_chronological_note_events() -> None:
+    onsets = np.zeros((300, 88))
+    frames = np.zeros((300, 88))
+    for start, pitch_idx in [(20, 40), (100, 45), (200, 38)]:
+        frames[start : start + 50, pitch_idx] = 0.8
+        onsets[start, pitch_idx] = 0.9
+    output = {"note": frames, "onset": onsets, "contour": np.zeros((300, 264))}
+    _, events = model_output_to_notes(output, onset_thresh=0.5, frame_thresh=0.3)
+    starts = [e[0] for e in events]
+    assert len(starts) == 3
+    assert starts == sorted(starts)

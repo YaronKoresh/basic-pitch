@@ -515,7 +515,8 @@ def output_to_notes_polyphonic(
 
     Returns:
         list of tuples [(start_time_frames, end_time_frames, pitch_midi, amplitude)]
-        representing the note events, where amplitude is a number between 0 and 1
+        representing the note events, where amplitude is a number between 0 and 1,
+        sorted by start time, then pitch
     """
 
     n_frames = frames.shape[0]
@@ -651,4 +652,6 @@ def output_to_notes_polyphonic(
                 )
             )
 
+    # onsets are decoded from the end of the audio backwards and melodia notes come last
+    note_events.sort(key=lambda note: (note[0], note[2], note[1]))
     return note_events

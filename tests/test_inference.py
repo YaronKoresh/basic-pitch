@@ -74,6 +74,8 @@ def test_predict() -> None:
 
     expected_note_events = np.load(RESOURCES_PATH / "vocadito_10" / "note_events.npz", allow_pickle=True)["arr_0"]
     assert len(expected_note_events) == len(note_events)
+    # the stored events come from before note events were sorted by start time
+    expected_note_events = sorted(expected_note_events, key=lambda e: (e[0], e[2], e[1]))
     for expected, calculated in zip(expected_note_events, note_events):
         for i in range(len(expected)):
             np.testing.assert_allclose(expected[i], calculated[i], atol=1e-4, rtol=0)
