@@ -80,3 +80,31 @@ def test_unloadable_model_path_exits_with_usage_error(
     captured = capsys.readouterr()
     assert "cannot be loaded" in captured.err
     assert "Traceback" not in captured.err
+
+
+def capture_save_midi(monkeypatch: pytest.MonkeyPatch, *args: str) -> bool:
+    from basic_pitch import inference
+
+    captured = {}
+
+    def fake_predict_and_save(audio_path_list, output_dir, save_midi, *rest, **kwargs):  # type: ignore
+        captured["save_midi"] = save_midi
+
+    monkeypatch.setattr(inference, "Model", lambda path: object())
+    monkeypatch.setattr(predict, "Model", lambda path: object())
+    monkeypatch.setattr(inference, "predict_and_save", fake_predict_and_save)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        run_main(monkeypatch, tmpdir, str(RESOURCES_PATH / "vocadito_10.wav"), *args)
+    return captured["save_midi"]
+
+
+def test_midi_is_saved_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert capture_save_midi(monkeypatch) is True
+
+
+def test_no_save_midi_flag_skips_the_midi_file(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert capture_save_midi(monkeypatch, "--save-note-events", "--no-save-midi") is False
+
+
+def test_save_midi_flag_is_still_accepted(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert capture_save_midi(monkeypatch, "--save-midi") is True

@@ -60,7 +60,13 @@ def main() -> None:
         "--save-midi",
         action="store_true",
         default=True,
-        help="Create a MIDI file.",
+        help="Create a MIDI file (this is the default).",
+    )
+    parser.add_argument(
+        "--no-save-midi",
+        dest="save_midi",
+        action="store_false",
+        help="Do not create a MIDI file, e.g. when only the note events or the model outputs are needed.",
     )
     parser.add_argument(
         "--sonify-midi",
