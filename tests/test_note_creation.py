@@ -413,9 +413,9 @@ def test_suppress_harmonic_notes_keeps_notes_at_other_times_and_other_intervals(
     assert suppress_harmonic_notes(events) == events
 
 
-def test_suppress_harmonic_notes_keeps_a_note_that_outlasts_the_lower_note() -> None:
+def test_suppress_harmonic_notes_drops_an_overtone_that_rings_longer_than_the_lower_note() -> None:
     events = [(10, 20, 40, 0.8), (10, 60, 52, 0.4)]
-    assert suppress_harmonic_notes(events) == events
+    assert suppress_harmonic_notes(events) == [(10, 20, 40, 0.8)]
 
 
 def test_output_to_notes_polyphonic_suppresses_harmonics_by_default() -> None:

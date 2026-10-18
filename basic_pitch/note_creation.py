@@ -498,7 +498,7 @@ def suppress_harmonic_notes(
     """Drop notes that are the overtone of a stronger note starting at the same time.
 
     A note is dropped when another note starts within `onset_tolerance_frames` of it, sounds 12, 19 or 24
-    semitones lower, is louder by more than `max_amplitude_ratio`, and does not end before it.
+    semitones lower, and is louder than it by more than `max_amplitude_ratio`.
 
     Args:
         note_events: List of (start_frame, end_frame, pitch_midi, amplitude) tuples.
@@ -518,11 +518,7 @@ def suppress_harmonic_notes(
         is_overtone = False
         for interval in HARMONIC_INTERVALS:
             for lower in by_pitch.get(pitch - interval, ()):
-                if (
-                    abs(lower[0] - start) <= onset_tolerance_frames
-                    and lower[1] + onset_tolerance_frames >= end
-                    and amplitude <= max_amplitude_ratio * lower[3]
-                ):
+                if abs(lower[0] - start) <= onset_tolerance_frames and amplitude <= max_amplitude_ratio * lower[3]:
                     is_overtone = True
                     break
             if is_overtone:
