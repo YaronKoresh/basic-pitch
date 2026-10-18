@@ -88,6 +88,8 @@ To process more than one audio file at a time:
 basic-pitch <output-directory> <input-audio-path-1> <input-audio-path-2> <input-audio-path-3>
 ```
 
+An audio file that cannot be read is skipped with a message, the remaining files are still processed, and the command exits with status 1 at the end.
+
 Optionally, you may append any of the following flags to your prediction command to save additional formats of the prediction output to the `<output-directory>`:
 
 - `--sonify-midi` to additionally save a `.wav` audio rendering of the MIDI file.

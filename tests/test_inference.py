@@ -136,6 +136,47 @@ def test_predict_and_save_skips_audio_with_existing_output_and_continues() -> No
             assert (output_dir / f"second_basic_pitch.{suffix}").exists()
 
 
+def test_predict_and_save_continues_after_unreadable_audio_and_reports_it() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        bad = pathlib.Path(tmpdir) / "bad.wav"
+        good = pathlib.Path(tmpdir) / "good.wav"
+        output_dir = pathlib.Path(tmpdir) / "out"
+        output_dir.mkdir()
+        bad.write_bytes(b"not audio")
+        good.write_bytes((RESOURCES_PATH / "vocadito_10.wav").read_bytes())
+
+        with pytest.raises(IOError, match="1 of 2 audio files could not be processed.*bad.wav"):
+            inference.predict_and_save(
+                [bad, good],
+                output_dir,
+                True,
+                False,
+                False,
+                False,
+                model_or_model_path=ICASSP_2022_MODEL_PATH,
+            )
+
+        assert not (output_dir / "bad_basic_pitch.mid").exists()
+        assert (output_dir / "good_basic_pitch.mid").exists()
+
+
+def test_predict_and_save_rejects_invalid_note_options_before_processing() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_dir = pathlib.Path(tmpdir)
+        with pytest.raises(ValueError, match="onset threshold"):
+            inference.predict_and_save(
+                [output_dir / "missing.wav"],
+                output_dir,
+                True,
+                False,
+                False,
+                False,
+                model_or_model_path=ICASSP_2022_MODEL_PATH,
+                onset_threshold=2,
+            )
+        assert list(output_dir.iterdir()) == []
+
+
 @pytest.mark.parametrize("samplerate", [0, -5, 1.5, True])
 def test_predict_and_save_rejects_invalid_sonification_samplerate_before_writing(samplerate) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:

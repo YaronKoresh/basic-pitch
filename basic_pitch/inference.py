@@ -556,7 +556,16 @@ def predict_and_save(
     """
     if sonify_midi:
         infer.verify_sonification_samplerate(sonification_samplerate)
+    infer.verify_note_options(
+        onset_threshold,
+        frame_threshold,
+        minimum_note_length,
+        minimum_frequency,
+        maximum_frequency,
+        midi_tempo,
+    )
 
+    unreadable_audio_paths = []
     for audio_path in audio_path_list:
         print("")
         try:
@@ -579,19 +588,25 @@ def predict_and_save(
             print(e)
             continue
 
-        model_output, midi_data, note_events = predict(
-            pathlib.Path(audio_path),
-            model_or_model_path,
-            onset_threshold,
-            frame_threshold,
-            minimum_note_length,
-            minimum_frequency,
-            maximum_frequency,
-            multiple_pitch_bends,
-            melodia_trick,
-            debug_file,
-            midi_tempo,
-        )
+        try:
+            model_output, midi_data, note_events = predict(
+                pathlib.Path(audio_path),
+                model_or_model_path,
+                onset_threshold,
+                frame_threshold,
+                minimum_note_length,
+                minimum_frequency,
+                maximum_frequency,
+                multiple_pitch_bends,
+                melodia_trick,
+                debug_file,
+                midi_tempo,
+            )
+        except Exception as e:
+            # an audio file that cannot be decoded must not stop the files after it
+            print(f"  🚨 Could not process {audio_path}: {e}. Skipping it.")
+            unreadable_audio_paths.append(str(audio_path))
+            continue
 
         if model_output_path is not None:
             try:
@@ -624,3 +639,9 @@ def predict_and_save(
             except Exception as e:
                 failed_to_save(OutputExtensions.NOTE_EVENTS.name, note_events_path)
                 raise e
+
+    if unreadable_audio_paths:
+        raise IOError(
+            f"{len(unreadable_audio_paths)} of {len(audio_path_list)} audio files could not be processed: "
+            + ", ".join(unreadable_audio_paths)
+        )
