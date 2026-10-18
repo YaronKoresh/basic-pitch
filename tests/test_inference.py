@@ -349,3 +349,18 @@ def test_predict_and_save_rejects_a_call_that_saves_nothing(tmp_path: pathlib.Pa
             model_or_model_path=ICASSP_2022_MODEL_PATH,
         )
     assert list(tmp_path.iterdir()) == []
+
+
+def test_predict_and_save_rejects_a_missing_output_directory_before_processing(tmp_path: pathlib.Path) -> None:
+    missing_dir = tmp_path / "missing"
+    with pytest.raises(ValueError, match="is not a directory"):
+        inference.predict_and_save(
+            [RESOURCES_PATH / "vocadito_10.wav"],
+            missing_dir,
+            True,
+            False,
+            False,
+            False,
+            model_or_model_path=ICASSP_2022_MODEL_PATH,
+        )
+    assert not missing_dir.exists()

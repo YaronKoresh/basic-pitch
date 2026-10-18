@@ -619,8 +619,8 @@ def predict_and_save(
         midi_tempo,
     )
 
-    if save_midi or sonify_midi or save_model_outputs or save_notes:
-        verify_unique_output_names(audio_path_list)
+    verify_output_dir(output_directory)
+    verify_unique_output_names(audio_path_list)
 
     unreadable_audio_paths = []
     for audio_path in audio_path_list:
