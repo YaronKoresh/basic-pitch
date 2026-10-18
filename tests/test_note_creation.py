@@ -324,6 +324,12 @@ def test_note_peak_threshold_can_be_disabled() -> None:
         {"onset_thresh": 2.0},
         {"frame_thresh": -0.1},
         {"onset_thresh": float("nan")},
+        {"note_peak_thresh": 1.5},
+        {"note_peak_thresh": -0.1},
+        {"note_peak_thresh": float("nan")},
+        {"melodia_peak_thresh": 2.0},
+        {"melodia_peak_thresh": -1.0},
+        {"melodia_peak_thresh": float("inf")},
     ],
 )
 def test_model_output_to_notes_rejects_out_of_range_options(options: dict) -> None:

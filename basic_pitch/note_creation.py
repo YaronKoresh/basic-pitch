@@ -62,9 +62,16 @@ def verify_note_options(
     min_freq: Optional[float],
     max_freq: Optional[float],
     midi_tempo: float,
+    melodia_peak_thresh: float = 0.5,
+    note_peak_thresh: float = 0.4,
 ) -> None:
     """Raise a ValueError naming the first note option that is outside its allowed range."""
-    for name, value in (("onset threshold", onset_thresh), ("frame threshold", frame_thresh)):
+    for name, value in (
+        ("onset threshold", onset_thresh),
+        ("frame threshold", frame_thresh),
+        ("melodia peak threshold", melodia_peak_thresh),
+        ("note peak threshold", note_peak_thresh),
+    ):
         if not math.isfinite(value) or not 0 <= value <= 1:
             raise ValueError(f"The {name} must be a number between 0 and 1, got {value}.")
     if not math.isfinite(min_note_len) or min_note_len < 0:
@@ -151,7 +158,16 @@ def model_output_to_notes(
         midi : pretty_midi.PrettyMIDI object
         note_events: A list of note event tuples (start_time_s, end_time_s, pitch_midi, amplitude)
     """
-    verify_note_options(onset_thresh, frame_thresh, min_note_len, min_freq, max_freq, midi_tempo)
+    verify_note_options(
+        onset_thresh,
+        frame_thresh,
+        min_note_len,
+        min_freq,
+        max_freq,
+        midi_tempo,
+        melodia_peak_thresh,
+        note_peak_thresh,
+    )
 
     frames = output["note"]
     onsets = output["onset"]
