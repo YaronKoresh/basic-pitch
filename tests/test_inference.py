@@ -304,3 +304,32 @@ def test_save_note_events_keeps_velocity_in_midi_range(tmp_path: pathlib.Path) -
     inference.save_note_events([(0.0, 1.0, 60, 1.2, None), (1.0, 2.0, 62, -0.1, None)], path)
     rows = path.read_text().strip().splitlines()[1:]
     assert [int(row.split(",")[3]) for row in rows] == [127, 0]
+
+
+def test_predict_and_save_rejects_audio_files_that_share_an_output_name() -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        first = pathlib.Path(tmpdir) / "a" / "song.wav"
+        second = pathlib.Path(tmpdir) / "b" / "song.wav"
+        output_dir = pathlib.Path(tmpdir) / "out"
+        for directory in (first.parent, second.parent, output_dir):
+            directory.mkdir()
+        for audio in (first, second):
+            audio.write_bytes((RESOURCES_PATH / "vocadito_10.wav").read_bytes())
+
+        with pytest.raises(ValueError, match="song_basic_pitch"):
+            inference.predict_and_save(
+                [first, second],
+                output_dir,
+                True,
+                False,
+                False,
+                False,
+                model_or_model_path=ICASSP_2022_MODEL_PATH,
+            )
+        assert list(output_dir.iterdir()) == []
+
+
+def test_verify_unique_output_names_allows_distinct_names_and_repeated_paths(tmp_path: pathlib.Path) -> None:
+    inference.verify_unique_output_names([tmp_path / "one.wav", tmp_path / "two.mp3", tmp_path / "one.wav"])
+    with pytest.raises(ValueError, match="would both write"):
+        inference.verify_unique_output_names([tmp_path / "song.wav", tmp_path / "song.mp3"])

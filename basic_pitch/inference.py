@@ -369,6 +369,30 @@ def verify_output_dir(output_dir: Union[pathlib.Path, str]) -> None:
         raise ValueError(f"🚨 {output_dir} does not exist.")
 
 
+def verify_unique_output_names(audio_paths: Sequence[Union[pathlib.Path, str]]) -> None:
+    """Verify that no two different audio files would write to the same output files.
+
+    Output names are built from the audio file name without its extension, so ``a/song.wav``
+    and ``b/song.wav`` (or ``song.wav`` and ``song.mp3``) would share them.
+
+    Args:
+        audio_paths: Paths to audio files.
+
+    Raises:
+        ValueError: If two different audio files share an output name.
+    """
+    seen: Dict[str, str] = {}
+    for audio_path in audio_paths:
+        resolved = os.path.abspath(str(audio_path))
+        stem = os.path.splitext(os.path.basename(resolved))[0]
+        if stem in seen and seen[stem] != resolved:
+            raise ValueError(
+                f"🚨 {seen[stem]} and {resolved} would both write outputs named {stem}_basic_pitch. "
+                "Rename one of them or process them separately."
+            )
+        seen.setdefault(stem, resolved)
+
+
 def build_output_path(
     audio_path: Union[pathlib.Path, str],
     output_directory: Union[pathlib.Path, str],
@@ -564,6 +588,9 @@ def predict_and_save(
         maximum_frequency,
         midi_tempo,
     )
+
+    if save_midi or sonify_midi or save_model_outputs or save_notes:
+        verify_unique_output_names(audio_path_list)
 
     unreadable_audio_paths = []
     for audio_path in audio_path_list:

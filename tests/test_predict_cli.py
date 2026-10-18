@@ -108,3 +108,18 @@ def test_no_save_midi_flag_skips_the_midi_file(monkeypatch: pytest.MonkeyPatch) 
 
 def test_save_midi_flag_is_still_accepted(monkeypatch: pytest.MonkeyPatch) -> None:
     assert capture_save_midi(monkeypatch, "--save-midi") is True
+
+
+def test_audio_files_with_the_same_output_name_exit_with_usage_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        first = pathlib.Path(tmpdir) / "a" / "song.wav"
+        second = pathlib.Path(tmpdir) / "b" / "song.wav"
+        for audio in (first, second):
+            audio.parent.mkdir()
+            audio.write_bytes((RESOURCES_PATH / "vocadito_10.wav").read_bytes())
+        with pytest.raises(SystemExit) as exit_info:
+            run_main(monkeypatch, tmpdir, str(first), str(second))
+    assert exit_info.value.code == 2
+    assert "would both write" in capsys.readouterr().err
