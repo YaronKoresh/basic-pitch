@@ -530,6 +530,27 @@ def suppress_harmonic_notes(
     return kept
 
 
+def find_onset_peaks(onsets: np.array) -> Tuple[np.array, np.array]:
+    """Find the frames where an onset activation peaks, per frequency.
+
+    A peak is a frame that is higher than the frame before it and at least as high as the frame after it, so a
+    flat top counts once, at its first frame. The first frame can be a peak (the audio may start with a note).
+    Frames with no activation are never peaks.
+
+    Args:
+        onsets: Onset activation matrix (n_times, n_freqs).
+
+    Returns:
+        A tuple of the time indices and the frequency indices of the peaks, like np.where.
+    """
+    if onsets.shape[0] == 0:
+        return np.array([], dtype=int), np.array([], dtype=int)
+    below = np.full((1, onsets.shape[1]), -np.inf)
+    previous = np.concatenate([below, onsets[:-1]])
+    following = np.concatenate([onsets[1:], below])
+    return np.where((onsets > 0) & (onsets > previous) & (onsets >= following))
+
+
 def output_to_notes_polyphonic(
     frames: np.array,
     onsets: np.array,
@@ -579,7 +600,7 @@ def output_to_notes_polyphonic(
         onsets = get_infered_onsets(onsets, frames)
 
     peak_thresh_mat = np.zeros(onsets.shape)
-    peaks = scipy.signal.argrelmax(onsets, axis=0)
+    peaks = find_onset_peaks(onsets)
     peak_thresh_mat[peaks] = onsets[peaks]
 
     onset_idx = np.where(peak_thresh_mat >= onset_thresh)

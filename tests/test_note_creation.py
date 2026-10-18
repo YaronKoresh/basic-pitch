@@ -30,6 +30,7 @@ from basic_pitch.note_creation import (
     assign_pitch_bend_instruments,
     constrain_frequency,
     drop_overlapping_pitch_bends,
+    find_onset_peaks,
     get_infered_onsets,
     get_pitch_bends,
     model_output_to_notes,
@@ -244,7 +245,7 @@ def _sustained_activation(peak: float, onset: float) -> Tuple[np.ndarray, np.nda
     frames = np.zeros((100, 88))
     onsets = np.zeros((100, 88))
     frames[20:70, 40] = peak
-    onsets[40:45, 40] = onset  # a plateau has no local maximum, so the note can only be found by the melodia step
+    onsets[40:45, 40] = onset
     return onsets, frames
 
 
@@ -266,7 +267,6 @@ def test_melodia_keeps_strong_note_without_onset() -> None:
 
 def test_melodia_keeps_weak_note_with_strong_onset() -> None:
     onsets, frames = _sustained_activation(peak=0.4, onset=0.9)
-    assert _decode(onsets, frames, melodia_trick=False) == []
     assert len(_decode(onsets, frames)) == 1
 
 
@@ -512,3 +512,27 @@ def test_notes_of_one_pitch_never_overlap_on_random_activations() -> None:
             spans.sort()
             for (_, first_end), (second_start, _) in zip(spans, spans[1:]):
                 assert first_end <= second_start
+
+
+def test_note_with_flat_topped_onset_is_found_without_melodia() -> None:
+    onsets, frames = _sustained_activation(peak=0.9, onset=0.9)
+    notes = _decode(onsets, frames, melodia_trick=False)
+    assert [(n[0], n[2]) for n in notes] == [(40, 40 + 21)]
+
+
+def test_find_onset_peaks_counts_a_flat_top_once_at_its_first_frame() -> None:
+    onsets = np.zeros((10, 2))
+    onsets[3:6, 0] = 0.8
+    onsets[7, 1] = 0.6
+    onsets[5, 1] = 0.4
+    times, freqs = find_onset_peaks(onsets)
+    assert sorted(zip(times.tolist(), freqs.tolist())) == [(3, 0), (5, 1), (7, 1)]
+
+
+def test_find_onset_peaks_accepts_the_first_frame_and_ignores_silence() -> None:
+    onsets = np.zeros((6, 2))
+    onsets[0, 0] = 0.9
+    onsets[1, 0] = 0.3
+    times, freqs = find_onset_peaks(onsets)
+    assert list(zip(times.tolist(), freqs.tolist())) == [(0, 0)]
+    assert len(find_onset_peaks(np.zeros((0, 88)))[0]) == 0
