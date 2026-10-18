@@ -75,7 +75,29 @@ class Model:
         TFLITE = enum.auto()
         ONNX = enum.auto()
 
+    # Other serializations that ship next to the TensorFlow saved model, in the order they are tried.
+    SIBLING_SUFFIXES = (".onnx", ".tflite", ".mlpackage")
+
     def __init__(self, model_path: Union[pathlib.Path, str]):
+        try:
+            self._load(model_path)
+            return
+        except ValueError as error:
+            failure = error
+        base = pathlib.Path(model_path)
+        for suffix in Model.SIBLING_SUFFIXES:
+            sibling = base.with_name(base.name + suffix)
+            if not sibling.exists():
+                continue
+            try:
+                self._load(sibling)
+            except ValueError:
+                continue
+            logging.warning("Could not load %s, using %s instead.", base, sibling)
+            return
+        raise failure
+
+    def _load(self, model_path: Union[pathlib.Path, str]) -> None:
         present = []
         if TF_PRESENT:
             present.append("TensorFlow")
