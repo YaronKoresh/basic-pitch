@@ -305,7 +305,7 @@ def test_save_note_events_keeps_velocity_in_midi_range(tmp_path: pathlib.Path) -
     path = tmp_path / "events.csv"
     inference.save_note_events([(0.0, 1.0, 60, 1.2, None), (1.0, 2.0, 62, -0.1, None)], path)
     rows = path.read_text().strip().splitlines()[1:]
-    assert [int(row.split(",")[3]) for row in rows] == [127, 0]
+    assert [int(row.split(",")[3]) for row in rows] == [127, 1]
 
 
 def test_predict_and_save_rejects_audio_files_that_share_an_output_name() -> None:

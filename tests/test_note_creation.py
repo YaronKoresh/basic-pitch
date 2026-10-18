@@ -352,7 +352,7 @@ def test_sonify_salience_handles_grams_with_fewer_than_two_frames(n_times: int, 
 
 
 @pytest.mark.parametrize(
-    "amplitude,expected", [(0.0, 0), (0.5, 64), (1.0, 127), (1.2, 127), (-0.1, 0), (float("nan"), 0)]
+    "amplitude,expected", [(0.0, 1), (0.001, 1), (0.5, 64), (1.0, 127), (1.2, 127), (-0.1, 1), (float("nan"), 1)]
 )
 def test_amplitude_to_velocity_stays_in_midi_range(amplitude: float, expected: int) -> None:
     assert amplitude_to_velocity(amplitude) == expected
@@ -362,7 +362,15 @@ def test_amplitude_to_velocity_stays_in_midi_range(amplitude: float, expected: i
 def test_note_events_to_midi_output_can_be_written_with_out_of_range_amplitude(amplitude: float, tmp_path) -> None:  # type: ignore
     midi = note_events_to_midi([(0.0, 1.0, 60, amplitude, None)])
     midi.write(str(tmp_path / "out.mid"))
-    assert 0 <= midi.instruments[0].notes[0].velocity <= 127
+    assert 1 <= midi.instruments[0].notes[0].velocity <= 127
+
+
+def test_quiet_note_is_kept_when_midi_is_saved_and_loaded(tmp_path) -> None:  # type: ignore
+    midi = note_events_to_midi([(0.0, 1.0, 60, 0.002, None)])
+    path = tmp_path / "quiet.mid"
+    midi.write(str(path))
+    loaded = pretty_midi.PrettyMIDI(str(path))
+    assert [note.pitch for instrument in loaded.instruments for note in instrument.notes] == [60]
 
 
 def test_note_events_are_sorted_by_start_time() -> None:

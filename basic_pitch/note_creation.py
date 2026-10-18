@@ -48,6 +48,7 @@ DEFAULT_MIN_NOTE_LEN = 11
 ENERGY_TOLERANCE = 11
 MAGIC_ALIGNMENT_OFFSET = 0.0018
 MIDI_VELOCITY_SCALE = 127
+MIDI_MIN_NOTE_VELOCITY = 1  # a note-on with velocity 0 is a note-off, so the note would vanish from the file
 PITCH_BEND_SCALE = 4096
 
 
@@ -75,10 +76,10 @@ def verify_note_options(
 
 
 def amplitude_to_velocity(amplitude: float) -> int:
-    """Convert a note amplitude to a MIDI velocity, limited to the valid range 0-127 (NaN becomes 0)."""
+    """Convert a note amplitude to a MIDI velocity, limited to the audible range 1-127 (NaN becomes 1)."""
     if np.isnan(amplitude):
-        return 0
-    return int(np.clip(np.round(MIDI_VELOCITY_SCALE * amplitude), 0, MIDI_VELOCITY_SCALE))
+        return MIDI_MIN_NOTE_VELOCITY
+    return int(np.clip(np.round(MIDI_VELOCITY_SCALE * amplitude), MIDI_MIN_NOTE_VELOCITY, MIDI_VELOCITY_SCALE))
 
 
 def verify_sonification_samplerate(samplerate: int) -> None:
