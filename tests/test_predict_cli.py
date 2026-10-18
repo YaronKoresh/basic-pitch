@@ -42,3 +42,22 @@ def test_unreadable_audio_exits_with_failure_status(monkeypatch: pytest.MonkeyPa
         with pytest.raises(SystemExit) as exit_info:
             run_main(monkeypatch, tmpdir, str(bad_audio))
     assert exit_info.value.code == 1
+
+
+@pytest.mark.parametrize("samplerate", ["0", "-5"])
+def test_invalid_sonification_samplerate_exits_with_usage_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture, samplerate: str
+) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with pytest.raises(SystemExit) as exit_info:
+            run_main(
+                monkeypatch,
+                tmpdir,
+                str(RESOURCES_PATH / "vocadito_10.wav"),
+                "--sonify-midi",
+                "--sonification-samplerate",
+                samplerate,
+            )
+        assert list(pathlib.Path(tmpdir).iterdir()) == []
+    assert exit_info.value.code == 2
+    assert "sonification sample rate" in capsys.readouterr().err

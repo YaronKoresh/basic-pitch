@@ -73,6 +73,12 @@ def verify_note_options(
         raise ValueError(f"The MIDI tempo must be a number above 0, got {midi_tempo}.")
 
 
+def verify_sonification_samplerate(samplerate: int) -> None:
+    """Raise a ValueError if the sonification sample rate cannot be written to a wav file."""
+    if isinstance(samplerate, bool) or not isinstance(samplerate, (int, np.integer)) or not 0 < samplerate < 2**32:
+        raise ValueError(f"The sonification sample rate must be a whole number of Hz above 0, got {samplerate}.")
+
+
 def model_output_to_notes(
     output: Dict[str, np.array],
     onset_thresh: float,

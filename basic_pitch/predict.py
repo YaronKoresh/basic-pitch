@@ -138,9 +138,11 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    from basic_pitch.note_creation import verify_note_options
+    from basic_pitch.note_creation import verify_note_options, verify_sonification_samplerate
 
     try:
+        if args.sonify_midi:
+            verify_sonification_samplerate(args.sonification_samplerate)
         verify_note_options(
             args.onset_threshold,
             args.frame_threshold,

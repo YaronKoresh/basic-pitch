@@ -26,6 +26,7 @@ import librosa
 import pretty_midi
 import numpy as np
 import numpy.typing as npt
+import pytest
 
 from basic_pitch import ICASSP_2022_MODEL_PATH, inference, note_creation
 from basic_pitch.constants import (
@@ -133,6 +134,24 @@ def test_predict_and_save_skips_audio_with_existing_output_and_continues() -> No
         # the following audio is still processed
         for suffix in ("mid", "npz", "csv"):
             assert (output_dir / f"second_basic_pitch.{suffix}").exists()
+
+
+@pytest.mark.parametrize("samplerate", [0, -5, 1.5, True])
+def test_predict_and_save_rejects_invalid_sonification_samplerate_before_writing(samplerate) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        output_dir = pathlib.Path(tmpdir)
+        with pytest.raises(ValueError, match="sonification sample rate"):
+            inference.predict_and_save(
+                [RESOURCES_PATH / "vocadito_10.wav"],
+                output_dir,
+                True,
+                True,
+                True,
+                True,
+                model_or_model_path=ICASSP_2022_MODEL_PATH,
+                sonification_samplerate=samplerate,
+            )
+        assert list(output_dir.iterdir()) == []
 
 
 def test_predict_onset_threshold() -> None:
