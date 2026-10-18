@@ -454,3 +454,53 @@ def test_note_events_to_midi_with_notes_tied_on_start_end_pitch_and_amplitude() 
         midi = note_events_to_midi(events)
         assert len(midi.instruments[0].notes) == 2
         assert not any(bend.pitch for bend in midi.instruments[0].pitch_bends)
+
+
+def _held_pitch_activations(n_frames: int = 41) -> Tuple[np.ndarray, np.ndarray]:
+    frames = np.zeros((n_frames, 88))
+    onsets = np.zeros((n_frames, 88))
+    frames[10:, 49] = 0.9
+    return frames, onsets
+
+
+def test_melodia_note_does_not_run_over_onset_note_at_end_of_audio() -> None:
+    frames, onsets = _held_pitch_activations()
+    onsets[32, 49] = 0.9
+    frames[40, 49] = 0.95  # the last frame is never part of an onset note, but it is the strongest leftover
+    notes = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 7, False, None, None)
+    spans = sorted((start, end) for start, end, _, _ in notes)
+    assert (32, 40) in spans
+    for (_, first_end), (second_start, _) in zip(spans, spans[1:]):
+        assert first_end <= second_start
+
+
+def test_melodia_note_does_not_run_over_onset_note_in_the_middle() -> None:
+    frames = np.zeros((80, 88))
+    onsets = np.zeros((80, 88))
+    frames[10:70, 49] = 0.6
+    frames[40:48, 49] = 0.9
+    frames[70, 49] = 0.0
+    onsets[40, 49] = 0.9
+    notes = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 5, False, None, None)
+    spans = sorted((start, end) for start, end, _, _ in notes)
+    assert len(spans) >= 2
+    for (_, first_end), (second_start, _) in zip(spans, spans[1:]):
+        assert first_end <= second_start
+
+
+def test_notes_of_one_pitch_never_overlap_on_random_activations() -> None:
+    rng = np.random.default_rng(3)
+    for _ in range(60):
+        n_frames = int(rng.integers(30, 100))
+        frames = rng.random((n_frames, 88)) ** 3
+        onsets = rng.random((n_frames, 88)) ** 3
+        notes = output_to_notes_polyphonic(
+            frames, onsets, 0.5, 0.3, int(rng.integers(0, 12)), bool(rng.integers(0, 2)), None, None
+        )
+        by_pitch = {}
+        for start, end, pitch, _ in notes:
+            by_pitch.setdefault(pitch, []).append((start, end))
+        for spans in by_pitch.values():
+            spans.sort()
+            for (_, first_end), (second_start, _) in zip(spans, spans[1:]):
+                assert first_end <= second_start

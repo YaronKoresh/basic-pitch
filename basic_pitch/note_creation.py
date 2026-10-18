@@ -588,6 +588,9 @@ def output_to_notes_polyphonic(
     remaining_energy = np.zeros(frames.shape)
     remaining_energy[:, :] = frames[:, :]
 
+    # frames already taken by a note, so that a later note of the same pitch cannot run over them
+    claimed = np.zeros(frames.shape, dtype=bool)
+
     # loop over onsets
     note_events = []
     for note_start_idx, freq_idx in zip(onset_time_idx, onset_freq_idx):
@@ -622,6 +625,7 @@ def output_to_notes_polyphonic(
             continue
 
         # add the note
+        claimed[note_start_idx:i, freq_idx] = True
         amplitude = np.mean(frames[note_start_idx:i, freq_idx])
         note_events.append(
             (
@@ -639,10 +643,16 @@ def output_to_notes_polyphonic(
             i_mid, freq_idx = np.unravel_index(np.argmax(remaining_energy), energy_shape)
             remaining_energy[i_mid, freq_idx] = 0
 
+            # a pass ends where it reaches a note of the same pitch that was already found
+            claimed_after = np.flatnonzero(claimed[i_mid + 1 :, freq_idx])
+            forward_limit = i_mid + 1 + claimed_after[0] if len(claimed_after) else n_frames - 1
+            claimed_before = np.flatnonzero(claimed[:i_mid, freq_idx])
+            backward_limit = claimed_before[-1] if len(claimed_before) else 0
+
             # forward pass
             i = i_mid + 1
             k = 0
-            while i < n_frames - 1 and k < energy_tol:
+            while i < min(n_frames - 1, forward_limit) and k < energy_tol:
                 if remaining_energy[i, freq_idx] < frame_thresh:
                     k += 1
                 else:
@@ -661,7 +671,7 @@ def output_to_notes_polyphonic(
             # backward pass
             i = i_mid - 1
             k = 0
-            while i > 0 and k < energy_tol:
+            while i > backward_limit and k < energy_tol:
                 if remaining_energy[i, freq_idx] < frame_thresh:
                     k += 1
                 else:
@@ -691,6 +701,7 @@ def output_to_notes_polyphonic(
                 continue
 
             # add the note
+            claimed[i_start:i_end, freq_idx] = True
             amplitude = np.mean(frames[i_start:i_end, freq_idx])
             note_events.append(
                 (
