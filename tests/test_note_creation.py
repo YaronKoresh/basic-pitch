@@ -24,6 +24,7 @@ import pretty_midi
 import pytest
 
 from basic_pitch.note_creation import (
+    amplitude_to_velocity,
     constrain_frequency,
     drop_overlapping_pitch_bends,
     get_infered_onsets,
@@ -295,3 +296,17 @@ def test_sonify_salience_handles_grams_with_fewer_than_two_frames(n_times: int, 
     assert not np.any(audio)
     assert (len(audio) == 0) == (n_times == 0)
     assert save_path.exists()
+
+
+@pytest.mark.parametrize(
+    "amplitude,expected", [(0.0, 0), (0.5, 64), (1.0, 127), (1.2, 127), (-0.1, 0), (float("nan"), 0)]
+)
+def test_amplitude_to_velocity_stays_in_midi_range(amplitude: float, expected: int) -> None:
+    assert amplitude_to_velocity(amplitude) == expected
+
+
+@pytest.mark.parametrize("amplitude", [1.2, -0.1, float("nan")])
+def test_note_events_to_midi_output_can_be_written_with_out_of_range_amplitude(amplitude: float, tmp_path) -> None:  # type: ignore
+    midi = note_events_to_midi([(0.0, 1.0, 60, amplitude, None)])
+    midi.write(str(tmp_path / "out.mid"))
+    assert 0 <= midi.instruments[0].notes[0].velocity <= 127

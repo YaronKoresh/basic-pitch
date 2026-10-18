@@ -256,3 +256,10 @@ def test_predict_writes_debug_file() -> None:
     assert np.array(debug_data["audio_windowed"]).shape == (1, AUDIO_N_SAMPLES, 1)
     assert set(debug_data["unwrapped_output"].keys()) == {"note", "onset", "contour"}
     assert len(debug_data["estimated_notes"]) == len(note_events)
+
+
+def test_save_note_events_keeps_velocity_in_midi_range(tmp_path: pathlib.Path) -> None:
+    path = tmp_path / "events.csv"
+    inference.save_note_events([(0.0, 1.0, 60, 1.2, None), (1.0, 2.0, 62, -0.1, None)], path)
+    rows = path.read_text().strip().splitlines()[1:]
+    assert [int(row.split(",")[3]) for row in rows] == [127, 0]

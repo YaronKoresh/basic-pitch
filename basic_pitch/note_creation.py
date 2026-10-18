@@ -73,6 +73,13 @@ def verify_note_options(
         raise ValueError(f"The MIDI tempo must be a number above 0, got {midi_tempo}.")
 
 
+def amplitude_to_velocity(amplitude: float) -> int:
+    """Convert a note amplitude to a MIDI velocity, limited to the valid range 0-127 (NaN becomes 0)."""
+    if np.isnan(amplitude):
+        return 0
+    return int(np.clip(np.round(MIDI_VELOCITY_SCALE * amplitude), 0, MIDI_VELOCITY_SCALE))
+
+
 def verify_sonification_samplerate(samplerate: int) -> None:
     """Raise a ValueError if the sonification sample rate cannot be written to a wav file."""
     if isinstance(samplerate, bool) or not isinstance(samplerate, (int, np.integer)) or not 0 < samplerate < 2**32:
@@ -295,7 +302,7 @@ def note_events_to_midi(
         instrument_key = note_number if multiple_pitch_bends else 0
         instrument = instruments[instrument_key]
         note = pretty_midi.Note(
-            velocity=int(np.round(MIDI_VELOCITY_SCALE * amplitude)),
+            velocity=amplitude_to_velocity(amplitude),
             pitch=note_number,
             start=start_time,
             end=end_time,

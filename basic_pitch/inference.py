@@ -422,7 +422,7 @@ def save_note_events(
         writer = csv.writer(fhandle, delimiter=",")
         writer.writerow(["start_time_s", "end_time_s", "pitch_midi", "velocity", "pitch_bend"])
         for start_time, end_time, note_number, amplitude, pitch_bend in note_events:
-            row = [start_time, end_time, note_number, int(np.round(DEFAULT_MIDI_VELOCITY_SCALE * amplitude))]
+            row = [start_time, end_time, note_number, infer.amplitude_to_velocity(amplitude)]
             if pitch_bend:
                 row.extend(pitch_bend)
             writer.writerow(row)
