@@ -182,6 +182,7 @@ def main() -> None:
     print("Importing the ML inference library (this may take a few seconds)...")
     from basic_pitch.inference import (
         predict_and_save,
+        verify_debug_file,
         verify_output_dir,
         verify_input_path,
         verify_unique_output_names,
@@ -191,6 +192,7 @@ def main() -> None:
     audio_path_list = [pathlib.Path(audio_path) for audio_path in args.audio_paths]
     try:
         verify_output_dir(output_dir)
+        verify_debug_file(args.debug_file)
         for audio_path in audio_path_list:
             verify_input_path(audio_path)
         if args.save_midi or args.sonify_midi or args.save_model_outputs or args.save_note_events:

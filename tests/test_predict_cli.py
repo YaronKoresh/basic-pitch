@@ -134,3 +134,24 @@ def test_no_output_requested_exits_with_usage_error(
         assert list(pathlib.Path(tmpdir).iterdir()) == []
     assert exit_info.value.code == 2
     assert "nothing would be saved" in capsys.readouterr().err
+
+
+def test_debug_file_in_a_missing_directory_exits_with_usage_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        debug_file = pathlib.Path(tmpdir) / "missing" / "debug.json"
+        with pytest.raises(SystemExit) as exit_info:
+            run_main(monkeypatch, tmpdir, str(RESOURCES_PATH / "vocadito_10.wav"), "--debug-file", str(debug_file))
+    assert exit_info.value.code == 2
+    assert "debug file does not exist" in capsys.readouterr().err
+
+
+def test_debug_file_that_is_a_directory_exits_with_usage_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with pytest.raises(SystemExit) as exit_info:
+            run_main(monkeypatch, tmpdir, str(RESOURCES_PATH / "vocadito_10.wav"), "--debug-file", tmpdir)
+    assert exit_info.value.code == 2
+    assert "is a directory" in capsys.readouterr().err

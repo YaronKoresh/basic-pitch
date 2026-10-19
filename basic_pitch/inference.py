@@ -393,6 +393,26 @@ def verify_output_dir(output_dir: Union[pathlib.Path, str]) -> None:
         raise ValueError(f"🚨 {output_dir} is not a directory.")
 
 
+def verify_debug_file(debug_file: Optional[Union[pathlib.Path, str]]) -> None:
+    """Verify that a debug file can be written, before any audio is processed
+
+    Args:
+        debug_file: Path to the debug file, or None when no debug output is requested.
+
+    Raises:
+        ValueError: If the debug file is a directory or its directory does not exist.
+    """
+    if debug_file is None:
+        return
+
+    if os.path.isdir(debug_file):
+        raise ValueError(f"🚨 {debug_file} is a directory, not a debug file path.")
+
+    debug_dir = os.path.dirname(os.path.abspath(debug_file))
+    if not os.path.isdir(debug_dir):
+        raise ValueError(f"🚨 The directory {debug_dir} of the debug file does not exist.")
+
+
 def verify_unique_output_names(audio_paths: Sequence[Union[pathlib.Path, str]]) -> None:
     """Verify that no two different audio files would write to the same output files.
 
@@ -522,6 +542,8 @@ def predict(
         midi_tempo,
     )
 
+    verify_debug_file(debug_file)
+
     with no_tf_warnings():
         print(f"Predicting MIDI for {audio_path}...")
 
@@ -622,6 +644,7 @@ def predict_and_save(
     )
 
     verify_output_dir(output_directory)
+    verify_debug_file(debug_file)
     verify_unique_output_names(audio_path_list)
 
     # load the model once for all the audio files, and fail before processing any if it cannot be loaded

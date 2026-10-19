@@ -404,6 +404,33 @@ def test_predict_and_save_rejects_an_unloadable_model_before_processing(tmp_path
     assert list(output_dir.iterdir()) == []
 
 
+def test_verify_debug_file_accepts_no_file_and_a_file_in_an_existing_directory(tmp_path: pathlib.Path) -> None:
+    inference.verify_debug_file(None)
+    inference.verify_debug_file(tmp_path / "debug.json")
+
+
+def test_verify_debug_file_rejects_a_missing_directory_and_a_directory(tmp_path: pathlib.Path) -> None:
+    with pytest.raises(ValueError, match="debug file does not exist"):
+        inference.verify_debug_file(tmp_path / "missing" / "debug.json")
+    with pytest.raises(ValueError, match="is a directory"):
+        inference.verify_debug_file(tmp_path)
+
+
+def test_predict_and_save_rejects_an_unwritable_debug_file_before_processing(tmp_path: pathlib.Path) -> None:
+    with pytest.raises(ValueError, match="debug file does not exist"):
+        inference.predict_and_save(
+            [RESOURCES_PATH / "vocadito_10.wav"],
+            tmp_path,
+            True,
+            False,
+            False,
+            False,
+            model_or_model_path=ICASSP_2022_MODEL_PATH,
+            debug_file=tmp_path / "missing" / "debug.json",
+        )
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_verify_input_path_non_existent(tmp_path: pathlib.Path) -> None:
     with pytest.raises(ValueError, match="does not exist"):
         inference.verify_input_path(tmp_path / "missing.wav")
