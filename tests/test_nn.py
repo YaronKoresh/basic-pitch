@@ -191,3 +191,31 @@ class TestModelNoContours(unittest.TestCase):
         m = models.model(no_contours=True)
         loss = models.loss_no_contour()
         m.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(0.001))
+
+
+class TestModelOptionValidation(unittest.TestCase):
+    def test_invalid_n_harmonics_raise_value_error(self) -> None:
+        for n_harmonics in (0, -2, 2.5, True, float("nan")):
+            with self.subTest(n_harmonics=n_harmonics):
+                with self.assertRaisesRegex(ValueError, "n_harmonics must be a whole number of at least 1"):
+                    models.model(n_harmonics=n_harmonics)  # type: ignore
+                with self.assertRaisesRegex(ValueError, "n_harmonics must be a whole number of at least 1"):
+                    inputs = tf.keras.Input(shape=(AUDIO_N_SAMPLES, 1))
+                    models.get_cqt(inputs, n_harmonics, False)  # type: ignore
+
+    def test_invalid_loss_options_raise_value_error(self) -> None:
+        for factory in (models.loss, models.loss_no_contour):
+            for options in (
+                {"label_smoothing": 2.0},
+                {"label_smoothing": -0.1},
+                {"label_smoothing": float("nan")},
+                {"weighted": True, "positive_weight": 2.0},
+                {"weighted": True, "positive_weight": float("inf")},
+            ):
+                with self.subTest(factory=factory.__name__, options=options):
+                    with self.assertRaisesRegex(ValueError, "must be a number between 0 and 1"):
+                        factory(**options)  # type: ignore
+
+    def test_default_and_edge_loss_options_are_accepted(self) -> None:
+        self.assertIn("onset", models.loss())
+        self.assertIn("onset", models.loss_no_contour(label_smoothing=0.0, weighted=True, positive_weight=1.0))

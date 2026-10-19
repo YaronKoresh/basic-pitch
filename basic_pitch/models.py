@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 from typing import Any, Callable, Dict
 import numpy as np
 import tensorflow as tf
@@ -122,6 +123,13 @@ def onset_loss(
     return lambda x, y: transcription_loss(x, y, label_smoothing=label_smoothing)
 
 
+def _verify_loss_options(label_smoothing: float, positive_weight: float) -> None:
+    """Raise a ValueError if the label smoothing or the positive weight is outside 0 - 1."""
+    for name, value in (("label_smoothing", label_smoothing), ("positive_weight", positive_weight)):
+        if not math.isfinite(value) or not 0 <= value <= 1:
+            raise ValueError(f"{name} must be a number between 0 and 1, got {value}.")
+
+
 def loss(
     label_smoothing: float = DEFAULT_LABEL_SMOOTHING,
     weighted: bool = False,
@@ -140,6 +148,7 @@ def loss(
         transcription losses.
 
     """
+    _verify_loss_options(label_smoothing, positive_weight)
     loss_fn = lambda x, y: transcription_loss(x, y, label_smoothing=label_smoothing)
     loss_onset = onset_loss(weighted, label_smoothing, positive_weight)
     return {
@@ -165,6 +174,7 @@ def loss_no_contour(
         A dictionary with keys "note" and "onset" with functions as values.
 
     """
+    _verify_loss_options(label_smoothing, positive_weight)
     loss_fn = lambda x, y: transcription_loss(x, y, label_smoothing=label_smoothing)
     loss_onset = onset_loss(weighted, label_smoothing, positive_weight)
     return {
@@ -179,6 +189,12 @@ def _initializer() -> tf.keras.initializers.VarianceScaling:
 
 def _kernel_constraint() -> tf.keras.constraints.UnitNorm:
     return tf.keras.constraints.UnitNorm(axis=[0, 1, 2])
+
+
+def verify_n_harmonics(n_harmonics: int) -> None:
+    """Raise a ValueError if the number of harmonics is not a whole number of at least 1."""
+    if isinstance(n_harmonics, bool) or not isinstance(n_harmonics, (int, np.integer)) or n_harmonics < 1:
+        raise ValueError(f"n_harmonics must be a whole number of at least 1, got {n_harmonics}.")
 
 
 def get_cqt(inputs: tf.Tensor, n_harmonics: int, use_batchnorm: bool) -> tf.Tensor:
@@ -196,6 +212,7 @@ def get_cqt(inputs: tf.Tensor, n_harmonics: int, use_batchnorm: bool) -> tf.Tens
     Returns:
         The log-normalized CQT of the input audio.
     """
+    verify_n_harmonics(n_harmonics)
     n_semitones = np.min(
         [
             int(np.ceil(12.0 * np.log2(n_harmonics)) + ANNOTATIONS_N_SEMITONES),
@@ -233,6 +250,7 @@ def model(
         n_filters_notes: Number of filters for the notes convolutional layer.
         no_contours: Whether or not to include contours in the output.
     """
+    verify_n_harmonics(n_harmonics)
     # input representation
     inputs = tf.keras.Input(shape=(AUDIO_N_SAMPLES, 1))  # (batch, time, ch)
     x = get_cqt(inputs, n_harmonics, True)
