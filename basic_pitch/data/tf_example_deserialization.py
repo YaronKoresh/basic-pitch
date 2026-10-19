@@ -473,7 +473,7 @@ def reduce_transcription_inputs(
     Args:
         fid : file id (string)
         src : name of dataset (string)
-        wav : tensorflow wav obejct (tuple of audio and sample rate)
+        wav : tensorflow wav object (tuple of audio and sample rate)
             The whole audio file length
         notes : matrix of note frames (n_frames x N_FREQ_BINS_NOTES)
             possibly size 0

@@ -395,19 +395,19 @@ class CQT2010v2(tf.keras.layers.Layer):
     1. (len_audio)
     2. (num_audio, len_audio)
     3. (num_audio, 1, len_audio)
-    The correct shape will be inferred autommatically if the input follows these 3 shapes.
+    The correct shape will be inferred automatically if the input follows these 3 shapes.
     Most of the arguments follow the convention from librosa.
 
     This layer uses about 1MB of memory per second of input audio with its default arguments.
 
-    This alogrithm uses the resampling method proposed in [1].
+    This algorithm uses the resampling method proposed in [1].
     Instead of convoluting the STFT results with a gigantic CQT kernel covering the full frequency
     spectrum, we make a small CQT kernel covering only the top octave. Then we keep downsampling the
     input audio by a factor of 2 to convoluting it with the small CQT kernel.
     Everytime the input audio is downsampled, the CQT relative to the downsampled input is equivalent
     to the next lower octave.
     The kernel creation process is still same as the 1992 algorithm. Therefore, we can reuse the
-    code from the 1992 alogrithm [2]
+    code from the 1992 algorithm [2]
     [1] Schörkhuber, Christian. “CONSTANT-Q TRANSFORM TOOLBOX FOR MUSIC PROCESSING.” (2010).
     [2] Brown, Judith C.C. and Miller Puckette. “An efficient algorithm for the calculation of a
     constant Q transform.” (1992).
@@ -417,12 +417,12 @@ class CQT2010v2(tf.keras.layers.Layer):
     Parameters
     ----------
     sr : int
-        The sampling rate for the input audio. It is used to calucate the correct ``fmin`` and ``fmax``.
+        The sampling rate for the input audio. It is used to calculate the correct ``fmin`` and ``fmax``.
         Setting the correct sampling rate is very important for calculating the correct frequency.
     hop_length : int
         The hop (or stride) size. Default value is 512.
     fmin : float
-        The frequency for the lowest CQT bin. Default is 32.70Hz, which coresponds to the note C0.
+        The frequency for the lowest CQT bin. Default is 32.70Hz, which corresponds to the note C0.
     fmax : float
         The frequency for the highest CQT bin. Default is ``None``, therefore the higest CQT bin is
         inferred from the ``n_bins`` and ``bins_per_octave``.  If ``fmax`` is not ``None``, then the
@@ -444,13 +444,13 @@ class CQT2010v2(tf.keras.layers.Layer):
         The padding method. Default value is 'reflect'.
     trainable : bool
         Determine if the CQT kernels are trainable or not. If ``True``, the gradients for CQT kernels
-        will also be caluclated and the CQT kernels will be updated during model training.
+        will also be calculated and the CQT kernels will be updated during model training.
         Default value is ``False``
     output_format : str
         Determine the return type.
         'Magnitude' will return the magnitude of the STFT result, shape = ``(num_samples, freq_bins, time_steps)``;
         'Complex' will return the STFT result in complex number, shape = ``(num_samples, freq_bins, time_steps, 2)``;
-        'Phase' will return the phase of the STFT reuslt, shape = ``(num_samples, freq_bins,time_steps, 2)``.
+        'Phase' will return the phase of the STFT result, shape = ``(num_samples, freq_bins,time_steps, 2)``.
         The complex number is stored as ``(real, imag)`` in the last axis. Default value is 'Magnitude'.
     verbose : bool
         If ``True``, it shows layer information. If ``False``, it suppresses all prints.

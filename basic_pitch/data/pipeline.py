@@ -25,7 +25,7 @@ import tensorflow as tf
 from apache_beam.options.pipeline_options import PipelineOptions
 
 
-# Beacase beam.GroupIntoBatches isn't supported as of 2.29
+# Because beam.GroupIntoBatches isn't supported as of 2.29
 class Batch(beam.DoFn):
     def __init__(self, batch_size: int) -> None:
         self.batch_size = batch_size

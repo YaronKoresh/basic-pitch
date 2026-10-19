@@ -50,7 +50,7 @@ class Stft(tf.keras.layers.Layer):
                 If False, then D[:, t] begins at y[t * hop_length].
             pad_mode: Padding to use if center is True. One of "CONSTANT", "REFLECT", or "SYMMETRIC" (case-insensitive).
             name: Name of the layer.
-            dtype: Type used in calcuation.
+            dtype: Type used in calculation.
         """
         super().__init__(trainable=False, name=name, dtype=dtype, dynamic=False)
         self.fft_length = fft_length
