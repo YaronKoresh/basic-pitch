@@ -123,6 +123,37 @@ class TestHarmonicStacking(unittest.TestCase):
             break
 
 
+class TestHarmonicStackingEdgeCases(unittest.TestCase):
+    def test_shifts_keep_the_values_that_stay_inside_the_frequency_axis(self) -> None:
+        x = np.arange(1, 13, dtype=np.float32).reshape(1, 1, 12, 1)
+        output = nn.HarmonicStacking(1, [0.5, 1, 2], 12)(x).numpy()[0, 0]  # shifts are -12, 0 and 12
+        np.testing.assert_array_equal(output[:, 1], np.arange(1, 13))
+        np.testing.assert_array_equal(output[:, 0], np.zeros(12))
+        np.testing.assert_array_equal(output[:, 2], np.zeros(12))
+
+    def test_partial_shift_moves_the_values(self) -> None:
+        x = np.arange(1, 13, dtype=np.float32).reshape(1, 1, 12, 1)
+        output = nn.HarmonicStacking(1, [1, 2], 12)(x).numpy()[0, 0]  # the second shift is +12
+        self.assertEqual(output.shape, (12, 2))
+        output = nn.HarmonicStacking(1, [2 ** (3 / 12)], 12)(x).numpy()[0, 0, :, 0]  # shift +3
+        np.testing.assert_array_equal(output, np.concatenate([np.arange(4, 13), np.zeros(3)]))
+        output = nn.HarmonicStacking(1, [2 ** (-3 / 12)], 12)(x).numpy()[0, 0, :, 0]  # shift -3
+        np.testing.assert_array_equal(output, np.concatenate([np.zeros(3), np.arange(1, 10)]))
+
+    def test_shift_longer_than_the_frequency_axis_gives_zeros(self) -> None:
+        x = tf.ones((1, 4, 12, 1))
+        output = nn.HarmonicStacking(3, [0.5, 1, 2], 10)(x)
+        self.assertEqual(output.shape, (1, 4, 10, 3))
+        np.testing.assert_array_equal(output.numpy()[..., 0], np.zeros((1, 4, 10)))
+        np.testing.assert_array_equal(output.numpy()[..., 1], np.ones((1, 4, 10)))
+
+    def test_invalid_harmonics_raise_value_error(self) -> None:
+        for harmonics in ([0], [-1.0], [float("nan")], [float("inf")], [1, 0]):
+            with self.subTest(harmonics=harmonics):
+                with self.assertRaisesRegex(ValueError, "harmonics must be finite numbers above 0"):
+                    nn.HarmonicStacking(3, harmonics, 10)
+
+
 class TestLossFunctions(unittest.TestCase):
     def test_loss_has_all_keys(self) -> None:
         result = models.loss()

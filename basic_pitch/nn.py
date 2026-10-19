@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 from typing import Any, List
 
 import tensorflow as tf
@@ -46,6 +47,9 @@ class HarmonicStacking(tf.keras.layers.Layer):
     ):
         """Downsample frequency by stride, upsample channels by 4."""
         super().__init__(trainable=False, name=name)
+        for harmonic in harmonics:
+            if not math.isfinite(harmonic) or harmonic <= 0:
+                raise ValueError(f"The harmonics must be finite numbers above 0, got {harmonic}.")
         self.bins_per_semitone = bins_per_semitone
         self.harmonics = harmonics
         self.shifts = [
@@ -70,17 +74,17 @@ class HarmonicStacking(tf.keras.layers.Layer):
         # (n_batch, n_times, n_freqs, 1)
         tf.debugging.assert_equal(tf.shape(x).shape, 4)
         channels = []
+        n_freqs = x.shape[2] if x.shape[2] is not None else tf.shape(x)[2]
         for shift in self.shifts:
+            # pad first and cut afterwards, so that a shift longer than the frequency axis gives zeros
             if shift == 0:
                 padded = x
             elif shift > 0:
                 paddings = tf.constant([[0, 0], [0, 0], [0, shift], [0, 0]])
-                padded = tf.pad(x[:, :, shift:, :], paddings)
-            elif shift < 0:
-                paddings = tf.constant([[0, 0], [0, 0], [-shift, 0], [0, 0]])
-                padded = tf.pad(x[:, :, :shift, :], paddings)
+                padded = tf.pad(x, paddings)[:, :, shift : shift + n_freqs, :]
             else:
-                raise ValueError
+                paddings = tf.constant([[0, 0], [0, 0], [-shift, 0], [0, 0]])
+                padded = tf.pad(x, paddings)[:, :, :n_freqs, :]
 
             channels.append(padded)
         x = tf.concat(channels, axis=-1)
