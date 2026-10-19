@@ -258,6 +258,9 @@ def console_entry_point() -> None:
             if getattr(args, dataset.lower().replace("-", "_"))
         ]
     )
+    if not datasets_to_use:
+        parser.error("At least one dataset must be selected (e.g. --guitarset, --maestro)")
+
     dataset_sampling_frequency = dataset_sampling_frequency / np.sum(dataset_sampling_frequency)
 
     assert args.steps_per_epoch is not None
