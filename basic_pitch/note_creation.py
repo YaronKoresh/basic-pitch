@@ -192,7 +192,7 @@ def model_output_to_notes(
     else:
         estimated_notes_with_pitch_bend = [(note[0], note[1], note[2], note[3], None) for note in estimated_notes]
 
-    times_s = model_frames_to_time(contours.shape[0])
+    times_s = model_frames_to_time(contours.shape[0] + 1)
     estimated_notes_time_seconds = [
         (times_s[note[0]], times_s[note[1]], note[2], note[3], note[4]) for note in estimated_notes_with_pitch_bend
     ]
