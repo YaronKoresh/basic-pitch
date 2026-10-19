@@ -18,6 +18,7 @@
 import argparse
 import os
 import logging
+import math
 from datetime import datetime, timezone
 from typing import List
 
@@ -263,8 +264,20 @@ def console_entry_point() -> None:
 
     dataset_sampling_frequency = dataset_sampling_frequency / np.sum(dataset_sampling_frequency)
 
-    assert args.steps_per_epoch is not None
-    assert args.validation_steps > 0
+    for option, value, minimum in (
+        ("--epochs", args.epochs, 1),
+        ("--batch-size", args.batch_size, 1),
+        ("--steps-per-epoch", args.steps_per_epoch, 1),
+        ("--validation-steps", args.validation_steps, 1),
+        ("--training-shuffle-size", args.training_shuffle_size, 0),
+        ("--size-evaluation-callback-datasets", args.size_evaluation_callback_datasets, 1),
+    ):
+        if value < minimum:
+            parser.error(f"{option} must be a whole number of at least {minimum}, got {value}.")
+    if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
+        parser.error(f"--learning-rate must be a number above 0, got {args.learning_rate}.")
+    if not math.isfinite(args.positive_onset_weight) or not 0 <= args.positive_onset_weight <= 1:
+        parser.error(f"--positive-onset-weight must be a number between 0 and 1, got {args.positive_onset_weight}.")
 
     main(
         args.source,
