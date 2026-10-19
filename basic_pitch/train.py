@@ -150,7 +150,6 @@ def main(
     model.compile(
         loss=loss,
         optimizer=tf.keras.optimizers.Adam(learning_rate),
-        sample_weight_mode={"contour": None, "note": None, "onset": None},
     )
 
     logging.info("--- Model Training specs ---")
@@ -244,12 +243,12 @@ def console_entry_point() -> None:
         "--positive-onset-weight",
         type=float,
         default=0.5,
-        help="Positive class onset weight. Only applies when weignted onset loss is true.",
+        help="Positive class onset weight. Only applies when weighted onset loss is true.",
     )
 
     args = parser.parse_args()
     datasets_to_use = [
-        dataset.lower()
+        dataset.lower().replace("-", "_")
         for dataset in DATASET_SAMPLING_FREQUENCY.keys()
         if getattr(args, dataset.lower().replace("-", "_"))
     ]

@@ -207,7 +207,7 @@ class Model:
 DEFAULT_ONSET_THRESHOLD = 0.5
 DEFAULT_FRAME_THRESHOLD = 0.3
 DEFAULT_MINIMUM_NOTE_LENGTH_MS = 116.0
-DEFAULT_MINIMUM_MIDI_TEMPO = 120
+DEFAULT_MIDI_TEMPO = 120
 DEFAULT_SONIFICATION_SAMPLERATE = 44100
 DEFAULT_OVERLAPPING_FRAMES = 30
 DEFAULT_MIDI_VELOCITY_SCALE = 127
@@ -487,7 +487,7 @@ def predict(
     multiple_pitch_bends: bool = False,
     melodia_trick: bool = True,
     debug_file: Optional[pathlib.Path] = None,
-    midi_tempo: float = DEFAULT_MINIMUM_MIDI_TEMPO,
+    midi_tempo: float = DEFAULT_MIDI_TEMPO,
     suppress_harmonics: bool = True,
 ) -> Tuple[
     Dict[str, np.array],
@@ -584,7 +584,7 @@ def predict_and_save(
     melodia_trick: bool = True,
     debug_file: Optional[pathlib.Path] = None,
     sonification_samplerate: int = DEFAULT_SONIFICATION_SAMPLERATE,
-    midi_tempo: float = DEFAULT_MINIMUM_MIDI_TEMPO,
+    midi_tempo: float = DEFAULT_MIDI_TEMPO,
     suppress_harmonics: bool = True,
 ) -> None:
     """Make a prediction and save the results to file.
