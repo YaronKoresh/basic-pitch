@@ -22,7 +22,7 @@ def test_missing_output_dir_exits_with_usage_error(
         with pytest.raises(SystemExit) as exit_info:
             run_main(monkeypatch, str(missing), str(RESOURCES_PATH / "vocadito_10.wav"))
     assert exit_info.value.code == 2
-    assert "is not a directory" in capsys.readouterr().err
+    assert "does not exist" in capsys.readouterr().err
 
 
 def test_missing_input_file_exits_with_usage_error(
@@ -32,7 +32,7 @@ def test_missing_input_file_exits_with_usage_error(
         with pytest.raises(SystemExit) as exit_info:
             run_main(monkeypatch, tmpdir, str(pathlib.Path(tmpdir) / "missing.wav"))
     assert exit_info.value.code == 2
-    assert "is not a file path" in capsys.readouterr().err
+    assert "does not exist" in capsys.readouterr().err
 
 
 def test_unreadable_audio_exits_with_failure_status(monkeypatch: pytest.MonkeyPatch) -> None:
