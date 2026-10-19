@@ -115,10 +115,14 @@ Import `basic-pitch` into your own Python code and run the [`predict`](basic_pit
 from basic_pitch.inference import predict
 from basic_pitch import ICASSP_2022_MODEL_PATH
 
-model_output, midi_data, note_events = predict(<input-audio-path>)
+model_output, midi_data, note_events = predict(
+    <input-audio-path>,
+    minimum_frequency=<minimum-frequency>,
+    maximum_frequency=<maximum-frequency>,
+)
 ```
 
-- `<minimum-frequency>` & `<maximum-frequency>` (*float*s) set the maximum and minimum allowed note frequency, in Hz, returned by the model. Pitch events with frequencies outside of this range will be excluded from the prediction results.
+- `<minimum-frequency>` & `<maximum-frequency>` (optional *float*s, `None` by default) set the maximum and minimum allowed note frequency, in Hz, returned by the model. Pitch events with frequencies outside of this range will be excluded from the prediction results.
 - `model_output` is the raw model inference output
 - `midi_data` is the transcribed MIDI data derived from the `model_output`
 - `note_events` is a list of note events derived from the `model_output`
@@ -130,17 +134,15 @@ Note: As mentioned previously, ICASSP_2022_MODEL_PATH will default to the runtim
 To run prediction within a loop, you'll want to load the model yourself and provide `predict()` with the loaded model object itself to be used for repeated prediction calls, in order to avoid redundant and sluggish model loading.
 
 ```python
-import tensorflow as tf
-
 from basic_pitch.inference import predict, Model
 from basic_pitch import ICASSP_2022_MODEL_PATH
 
-basic_pitch_model = Model(ICASSP_2022_MODEL_PATH))
+basic_pitch_model = Model(ICASSP_2022_MODEL_PATH)
 
-for x in range():
+for audio_path in <input-audio-path-list>:
     ...
     model_output, midi_data, note_events = predict(
-        <loop-x-input-audio-path>,
+        audio_path,
         basic_pitch_model,
     )
     ...
