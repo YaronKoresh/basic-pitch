@@ -17,6 +17,8 @@
 
 import warnings
 
+from typing import Tuple
+
 import numpy as np
 import pytest
 
@@ -55,6 +57,34 @@ class TestGetWindowDispatch:
     def test_invalid_type_raises(self) -> None:
         with pytest.raises(Exception, match="only supports"):
             get_window_dispatch([1, 2, 3], 256)
+
+    def test_gaussian_tuple_with_zero_attenuation_is_flat(self) -> None:
+        np.testing.assert_allclose(get_window_dispatch(("gaussian", 0), 8), np.ones(8))
+
+    @pytest.mark.parametrize(
+        "window",
+        [
+            ("gaussian", -1.0),
+            ("gaussian", float("nan")),
+            ("gaussian", float("inf")),
+            ("gaussian", (1, 2)),
+            ("gaussian",),
+        ],
+    )
+    def test_invalid_gaussian_tuple_raises_value_error(self, window: Tuple[str, ...]) -> None:
+        with pytest.raises(ValueError, match="gaussian window"):
+            get_window_dispatch(window, 8)  # type: ignore
+
+    @pytest.mark.parametrize("beta", [14, np.float32(14.0), np.int64(14)])
+    def test_whole_and_numpy_kaiser_beta_returns_ndarray(self, beta: float) -> None:
+        with pytest.warns(UserWarning, match="Kaiser"):
+            result = get_window_dispatch(beta, 8)
+        np.testing.assert_allclose(result, get_window_dispatch(14.0, 8))
+
+    @pytest.mark.parametrize("window", [True, float("nan"), float("inf"), None])
+    def test_other_values_raise(self, window: object) -> None:
+        with pytest.raises(Exception, match="only supports"):
+            get_window_dispatch(window, 8)  # type: ignore
 
 
 class TestCQT2010v2PadMode:

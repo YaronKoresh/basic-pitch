@@ -139,22 +139,35 @@ def get_early_downsample_params(
     return sr, hop_length, downsample_factor, early_downsample_filter, earlydownsample
 
 
+def _is_finite_number(value: object) -> bool:
+    """True for a finite int or float (including the numpy ones), but not for a bool."""
+    return (
+        isinstance(value, (int, float, np.integer, np.floating))
+        and not isinstance(value, bool)
+        and bool(np.isfinite(value))
+    )
+
+
 def get_window_dispatch(window: Union[str, Tuple[str, float]], N: int, fftbins: bool = True) -> np.array:
     if isinstance(window, str):
         return scipy.signal.get_window(window, N, fftbins=fftbins)
     elif isinstance(window, tuple):
-        if window[0] == "gaussian":
-            assert window[1] >= 0
+        if window[:1] == ("gaussian",):
+            if len(window) != 2 or not _is_finite_number(window[1]) or window[1] < 0:
+                raise ValueError(
+                    f"A gaussian window needs the form ('gaussian', attenuation), with a finite attenuation "
+                    f"of at least 0, got {window}."
+                )
             sigma = np.floor(-N / 2 / np.sqrt(-2 * np.log(10 ** (-window[1] / 20))))
             return scipy.signal.get_window(("gaussian", sigma), N, fftbins=fftbins)
         else:
             warnings.warn("Tuple windows may have undesired behaviour regarding Q factor")
             return scipy.signal.get_window(window, N, fftbins=fftbins)
-    elif isinstance(window, float):
+    elif _is_finite_number(window):
         warnings.warn(
             "You are using Kaiser window with beta factor " + str(window) + ". Correct behaviour not checked."
         )
-        return scipy.signal.get_window(window, N, fftbins=fftbins)
+        return scipy.signal.get_window(float(window), N, fftbins=fftbins)
     else:
         raise Exception("The function get_window from scipy only supports strings, tuples and floats.")
 
