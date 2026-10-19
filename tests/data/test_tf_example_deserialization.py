@@ -114,7 +114,7 @@ def test_prepare_visualization_dataset(tmp_path: pathlib.Path, mock_guitarset_in
     )
 
     assert ds_train is not None and isinstance(ds_train, tf.data.Dataset)
-    assert ds_valid is not None and isinstance(ds_train, tf.data.Dataset)
+    assert ds_valid is not None and isinstance(ds_valid, tf.data.Dataset)
 
 
 def test_sample_datasets(tmp_path: pathlib.Path, mock_guitarset_index: None) -> None:
