@@ -20,7 +20,7 @@ import warnings
 import numpy as np
 import pytest
 
-from basic_pitch.layers.nnaudio import get_window_dispatch
+from basic_pitch.layers.nnaudio import get_window_dispatch, CQT2010v2
 
 
 class TestGetWindowDispatch:
@@ -55,3 +55,10 @@ class TestGetWindowDispatch:
     def test_invalid_type_raises(self) -> None:
         with pytest.raises(Exception, match="only supports"):
             get_window_dispatch([1, 2, 3], 256)
+
+
+class TestCQT2010v2PadMode:
+    def test_unsupported_pad_mode_raises(self) -> None:
+        layer = CQT2010v2(sr=22050, hop_length=256, pad_mode="symmetric")
+        with pytest.raises(ValueError, match="Unsupported pad_mode"):
+            layer.build(input_shape=(None, 22050))

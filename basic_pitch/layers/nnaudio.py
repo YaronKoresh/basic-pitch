@@ -611,6 +611,8 @@ class CQT2010v2(tf.keras.layers.Layer):
             self.padding = ConstantPad1D(self.n_fft // 2, 0)
         elif self.pad_mode == "reflect":
             self.padding = ReflectionPad1D(self.n_fft // 2)
+        else:
+            raise ValueError(f"Unsupported pad_mode '{self.pad_mode}'. Must be 'constant' or 'reflect'.")
 
         rank = len(input_shape)
         if rank == 2:
