@@ -21,7 +21,13 @@ import tensorflow as tf
 from typing import Dict
 
 from basic_pitch.callbacks import VisualizeCallback
-from basic_pitch.constants import AUDIO_N_SAMPLES, ANNOTATIONS_N_SEMITONES, ANNOT_N_FRAMES
+from basic_pitch.constants import (
+    AUDIO_N_SAMPLES,
+    ANNOTATIONS_N_SEMITONES,
+    ANNOT_N_FRAMES,
+    N_FREQ_BINS_CONTOURS,
+    N_FREQ_BINS_NOTES,
+)
 
 
 class MockModel(tf.keras.Model):
@@ -30,7 +36,9 @@ class MockModel(tf.keras.Model):
 
     def call(self, inputs: tf.Tensor) -> Dict[str, tf.Tensor]:
         return {
-            key: tf.random.normal((1, ANNOTATIONS_N_SEMITONES, ANNOT_N_FRAMES)) for key in ["onset", "contour", "note"]
+            "onset": tf.random.normal((1, ANNOT_N_FRAMES, N_FREQ_BINS_NOTES)),
+            "note": tf.random.normal((1, ANNOT_N_FRAMES, N_FREQ_BINS_NOTES)),
+            "contour": tf.random.normal((1, ANNOT_N_FRAMES, N_FREQ_BINS_CONTOURS)),
         }
 
 
@@ -38,8 +46,9 @@ def create_mock_dataset() -> tf.data.Dataset:
     batch_size = 1
     inputs = tf.random.normal((batch_size, AUDIO_N_SAMPLES, 1))
     targets = {
-        key: tf.random.normal((batch_size, ANNOTATIONS_N_SEMITONES, ANNOT_N_FRAMES))
-        for key in ["onset", "contour", "note"]
+        "onset": tf.random.normal((batch_size, ANNOT_N_FRAMES, N_FREQ_BINS_NOTES)),
+        "note": tf.random.normal((batch_size, ANNOT_N_FRAMES, N_FREQ_BINS_NOTES)),
+        "contour": tf.random.normal((batch_size, ANNOT_N_FRAMES, N_FREQ_BINS_CONTOURS)),
     }
     dataset = tf.data.Dataset.from_tensor_slices((inputs, targets))
     dataset = dataset.batch(batch_size)
