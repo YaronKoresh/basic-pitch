@@ -175,7 +175,7 @@ def main(known_args: argparse.Namespace, pipeline_args: List[str]) -> None:
         pipeline_args,
         input_data,
         IkalaToTfExample(known_args.source, download=True),
-        IkalaInvalidTracks(known_args.source),
+        IkalaInvalidTracks(),
         destination,
         known_args.batch_size,
     )
