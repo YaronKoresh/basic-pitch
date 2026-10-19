@@ -700,14 +700,14 @@ def output_to_notes_polyphonic(
 
             # a pass ends where it reaches a note of the same pitch that was already found
             claimed_after = np.flatnonzero(claimed[i_mid + 1 :, freq_idx])
-            forward_limit = i_mid + 1 + claimed_after[0] if len(claimed_after) else n_frames - 1
+            forward_limit = i_mid + 1 + claimed_after[0] if len(claimed_after) else n_frames
             claimed_before = np.flatnonzero(claimed[:i_mid, freq_idx])
-            backward_limit = claimed_before[-1] if len(claimed_before) else 0
+            backward_limit = claimed_before[-1] if len(claimed_before) else -1
 
             # forward pass
             i = i_mid + 1
             k = 0
-            while i < min(n_frames - 1, forward_limit) and k < energy_tol:
+            while i < forward_limit and k < energy_tol:
                 if remaining_energy[i, freq_idx] < frame_thresh:
                     k += 1
                 else:
