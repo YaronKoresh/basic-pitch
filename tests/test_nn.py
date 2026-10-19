@@ -155,6 +155,23 @@ class TestHarmonicStackingEdgeCases(unittest.TestCase):
 
 
 class TestLossFunctions(unittest.TestCase):
+    def test_weighted_loss_is_finite_when_a_batch_has_only_one_kind_of_label(self) -> None:
+        rng = np.random.default_rng(0)
+        y_pred = tf.constant(rng.uniform(0.05, 0.95, (2, 5, 8)).astype(np.float32))
+        for y_true in (np.zeros((2, 5, 8), np.float32), np.ones((2, 5, 8), np.float32)):
+            with tf.GradientTape() as tape:
+                tape.watch(y_pred)
+                loss = models.weighted_transcription_loss(tf.constant(y_true), y_pred, 0.2, 0.5)
+            self.assertTrue(np.isfinite(loss.numpy()))
+            self.assertTrue(np.all(np.isfinite(tape.gradient(loss, y_pred).numpy())))
+
+    def test_weighted_loss_with_both_kinds_of_label_is_the_weighted_mean_of_each_kind(self) -> None:
+        y_true = tf.constant([[1.0, 0.0, 0.0, 1.0]])
+        y_pred = tf.constant([[0.9, 0.2, 0.4, 0.6]])
+        expected = 0.25 * np.mean(-np.log(1 - np.array([0.2, 0.4]))) + 0.75 * np.mean(-np.log(np.array([0.9, 0.6])))
+        loss = models.weighted_transcription_loss(y_true, y_pred, 0.0, 0.75)
+        self.assertAlmostEqual(float(loss), float(expected), places=5)
+
     def test_loss_has_all_keys(self) -> None:
         result = models.loss()
         assert set(result.keys()) == {"contour", "note", "onset"}

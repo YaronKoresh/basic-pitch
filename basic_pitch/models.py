@@ -94,6 +94,9 @@ def weighted_transcription_loss(
         tf.boolean_mask(y_pred, nonnegative_mask),
         label_smoothing=label_smoothing,
     )
+    # a group without any label has no loss, instead of the NaN that the mean of nothing is
+    bce_negative = tf.where(tf.reduce_any(negative_mask), bce_negative, tf.zeros_like(bce_negative))
+    bce_nonnegative = tf.where(tf.reduce_any(nonnegative_mask), bce_nonnegative, tf.zeros_like(bce_nonnegative))
     return ((1 - positive_weight) * bce_negative) + (positive_weight * bce_nonnegative)
 
 
