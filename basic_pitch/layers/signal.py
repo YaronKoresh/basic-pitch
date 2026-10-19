@@ -32,6 +32,7 @@ class Stft(tf.keras.layers.Layer):
         pad_mode: str = "REFLECT",
         name: Optional[str] = None,
         dtype: tf.dtypes.DType = tf.float32,
+        trainable: bool = False,
     ):
         """
         A Tensorflow Keras layer that calculates an STFT.
@@ -51,11 +52,24 @@ class Stft(tf.keras.layers.Layer):
             pad_mode: Padding to use if center is True. One of "CONSTANT", "REFLECT", or "SYMMETRIC" (case-insensitive).
             name: Name of the layer.
             dtype: Type used in calculation.
+            trainable: Accepted so that the layer can be rebuilt from its config. The layer has no weights.
+
+        Raises:
+            ValueError: If a length is not a whole number above 0, or the window is longer than the FFT.
         """
-        super().__init__(trainable=False, name=name, dtype=dtype, dynamic=False)
+        for length_name, length in (
+            ("fft_length", fft_length),
+            ("window_length", window_length),
+            ("hop_length", hop_length),
+        ):
+            if length is not None and (isinstance(length, bool) or not isinstance(length, int) or length < 1):
+                raise ValueError(f"{length_name} must be a whole number above 0, got {length}.")
+        if window_length is not None and window_length > fft_length:
+            raise ValueError(f"window_length ({window_length}) must not be longer than fft_length ({fft_length}).")
+        super().__init__(trainable=trainable, name=name, dtype=dtype, dynamic=False)
         self.fft_length = fft_length
-        self.window_length = window_length if window_length else self.fft_length
-        self.hop_length = hop_length if hop_length else self.window_length // 4
+        self.window_length = window_length if window_length is not None else self.fft_length
+        self.hop_length = hop_length if hop_length is not None else max(1, self.window_length // 4)
         self.window_fn = window_fn
         self.final_window_fn = window_fn
         self.pad_end = pad_end
