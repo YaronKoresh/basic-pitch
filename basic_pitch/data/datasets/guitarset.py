@@ -132,7 +132,7 @@ def create_input_data(
     validation_bound = train_percent
     test_bound = validation_bound + validation_percent
 
-    if seed:
+    if seed is not None:
         random.seed(seed)
 
     def determine_split(index: int) -> str:

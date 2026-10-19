@@ -18,7 +18,6 @@
 import argparse
 import logging
 import os
-import sys
 import time
 from typing import Any, Dict, List, TextIO, Tuple
 
@@ -203,6 +202,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     commandline.add_default(parser, os.path.basename(os.path.splitext(__file__)[0]))
     commandline.add_split(parser)
-    known_args, pipeline_args = parser.parse_known_args(sys.argv)
+    known_args, pipeline_args = parser.parse_known_args()
 
     main(known_args, pipeline_args)
