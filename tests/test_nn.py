@@ -19,7 +19,6 @@ from typing import Iterator, Tuple
 import unittest
 
 import numpy as np
-import pytest
 import tensorflow as tf
 
 from basic_pitch import models, nn

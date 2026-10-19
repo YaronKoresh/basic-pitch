@@ -23,7 +23,6 @@ from typing import Dict
 from basic_pitch.callbacks import VisualizeCallback
 from basic_pitch.constants import (
     AUDIO_N_SAMPLES,
-    ANNOTATIONS_N_SEMITONES,
     ANNOT_N_FRAMES,
     N_FREQ_BINS_CONTOURS,
     N_FREQ_BINS_NOTES,

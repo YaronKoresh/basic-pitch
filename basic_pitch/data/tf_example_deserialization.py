@@ -87,11 +87,7 @@ def prepare_datasets(
     # training dataset
     if training_shuffle_buffer_size > 0:
         ds_train = ds_train.shuffle(training_shuffle_buffer_size, reshuffle_each_iteration=True)
-    ds_train = (
-        ds_train.repeat()
-        .batch(batch_size)
-        .prefetch(tf.data.AUTOTUNE)
-    )
+    ds_train = ds_train.repeat().batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
     # validation dataset
     ds_validation = (

@@ -151,7 +151,9 @@ def get_window_dispatch(window: Union[str, Tuple[str, float]], N: int, fftbins: 
             warnings.warn("Tuple windows may have undesired behaviour regarding Q factor")
             return scipy.signal.get_window(window, N, fftbins=fftbins)
     elif isinstance(window, float):
-        warnings.warn("You are using Kaiser window with beta factor " + str(window) + ". Correct behaviour not checked.")
+        warnings.warn(
+            "You are using Kaiser window with beta factor " + str(window) + ". Correct behaviour not checked."
+        )
         return scipy.signal.get_window(window, N, fftbins=fftbins)
     else:
         raise Exception("The function get_window from scipy only supports strings, tuples and floats.")
