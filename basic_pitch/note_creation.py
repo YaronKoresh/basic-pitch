@@ -440,7 +440,7 @@ def drop_overlapping_pitch_bends(
     return note_events
 
 
-def get_infered_onsets(onsets: np.array, frames: np.array, n_diff: int = 2) -> np.array:
+def get_inferred_onsets(onsets: np.array, frames: np.array, n_diff: int = 2) -> np.array:
     """Infer onsets from large changes in frame amplitudes.
 
     Args:
@@ -630,7 +630,7 @@ def output_to_notes_polyphonic(
     onsets, frames = constrain_frequency(onsets, frames, max_freq, min_freq)
     # use onsets inferred from frames in addition to the predicted onsets
     if infer_onsets:
-        onsets = get_infered_onsets(onsets, frames)
+        onsets = get_inferred_onsets(onsets, frames)
 
     peak_thresh_mat = np.zeros(onsets.shape)
     peaks = find_onset_peaks(onsets)

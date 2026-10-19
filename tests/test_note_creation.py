@@ -34,7 +34,7 @@ from basic_pitch.note_creation import (
     constrain_frequency,
     drop_overlapping_pitch_bends,
     find_onset_peaks,
-    get_infered_onsets,
+    get_inferred_onsets,
     get_pitch_bends,
     model_output_to_notes,
     note_events_to_midi,
@@ -203,17 +203,17 @@ def test_assign_pitch_bend_instruments_gives_each_pitch_its_own_instrument_when_
     assert keys[0] != keys[1]
 
 
-def test_get_infered_onsets_with_silent_frames_returns_onsets_without_warning() -> None:
+def test_get_inferred_onsets_with_silent_frames_returns_onsets_without_warning() -> None:
     onsets = np.zeros((50, 88))
     frames = np.zeros((50, 88))
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        result = get_infered_onsets(onsets, frames)
+        result = get_inferred_onsets(onsets, frames)
     np.testing.assert_array_equal(result, onsets)
 
 
-def test_get_infered_onsets_without_frames_returns_empty_onsets() -> None:
-    result = get_infered_onsets(np.zeros((0, 88)), np.zeros((0, 88)))
+def test_get_inferred_onsets_without_frames_returns_empty_onsets() -> None:
+    result = get_inferred_onsets(np.zeros((0, 88)), np.zeros((0, 88)))
     assert result.shape == (0, 88)
 
 
@@ -224,12 +224,12 @@ def test_output_to_notes_polyphonic_without_frames_returns_no_notes() -> None:
     assert notes == []
 
 
-def test_get_infered_onsets_still_adds_onset_where_frames_rise() -> None:
+def test_get_inferred_onsets_still_adds_onset_where_frames_rise() -> None:
     onsets = np.zeros((50, 88))
     frames = np.zeros((50, 88))
     onsets[0, 0] = 0.5
     frames[20:40, 30] = 0.9
-    result = get_infered_onsets(onsets, frames)
+    result = get_inferred_onsets(onsets, frames)
     assert result[20, 30] == pytest.approx(0.5)
 
 
