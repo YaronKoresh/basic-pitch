@@ -284,7 +284,9 @@ def unwrap_output(
         array (n_times, n_freqs)
     """
     if len(output.shape) != 3:
-        return None
+        raise ValueError(
+            f"Model output must be three-dimensional (n_batches, n_times, n_freqs), got shape {output.shape}."
+        )
 
     n_olap = int(0.5 * n_overlapping_frames)
     if n_olap > 0:
@@ -368,11 +370,11 @@ def verify_input_path(audio_path: Union[pathlib.Path, str]) -> None:
     Raises:
         ValueError: If the audio file is invalid.
     """
-    if not os.path.isfile(audio_path):
-        raise ValueError(f"🚨 {audio_path} is not a file path.")
-
     if not os.path.exists(audio_path):
         raise ValueError(f"🚨 {audio_path} does not exist.")
+
+    if not os.path.isfile(audio_path):
+        raise ValueError(f"🚨 {audio_path} is not a file path.")
 
 
 def verify_output_dir(output_dir: Union[pathlib.Path, str]) -> None:
@@ -384,11 +386,11 @@ def verify_output_dir(output_dir: Union[pathlib.Path, str]) -> None:
     Raises:
         ValueError: If the output directory is invalid.
     """
-    if not os.path.isdir(output_dir):
-        raise ValueError(f"🚨 {output_dir} is not a directory.")
-
     if not os.path.exists(output_dir):
         raise ValueError(f"🚨 {output_dir} does not exist.")
+
+    if not os.path.isdir(output_dir):
+        raise ValueError(f"🚨 {output_dir} is not a directory.")
 
 
 def verify_unique_output_names(audio_paths: Sequence[Union[pathlib.Path, str]]) -> None:

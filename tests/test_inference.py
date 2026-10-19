@@ -353,7 +353,7 @@ def test_predict_and_save_rejects_a_call_that_saves_nothing(tmp_path: pathlib.Pa
 
 def test_predict_and_save_rejects_a_missing_output_directory_before_processing(tmp_path: pathlib.Path) -> None:
     missing_dir = tmp_path / "missing"
-    with pytest.raises(ValueError, match="is not a directory"):
+    with pytest.raises(ValueError, match="does not exist"):
         inference.predict_and_save(
             [RESOURCES_PATH / "vocadito_10.wav"],
             missing_dir,
@@ -364,3 +364,46 @@ def test_predict_and_save_rejects_a_missing_output_directory_before_processing(t
             model_or_model_path=ICASSP_2022_MODEL_PATH,
         )
     assert not missing_dir.exists()
+
+
+def test_verify_input_path_non_existent(tmp_path: pathlib.Path) -> None:
+    with pytest.raises(ValueError, match="does not exist"):
+        inference.verify_input_path(tmp_path / "missing.wav")
+
+
+def test_verify_input_path_directory(tmp_path: pathlib.Path) -> None:
+    with pytest.raises(ValueError, match="is not a file path"):
+        inference.verify_input_path(tmp_path)
+
+
+def test_verify_input_path_valid_file(tmp_path: pathlib.Path) -> None:
+    f = tmp_path / "audio.wav"
+    f.write_bytes(b"data")
+    inference.verify_input_path(f)
+
+
+def test_verify_output_dir_non_existent(tmp_path: pathlib.Path) -> None:
+    with pytest.raises(ValueError, match="does not exist"):
+        inference.verify_output_dir(tmp_path / "missing")
+
+
+def test_verify_output_dir_file(tmp_path: pathlib.Path) -> None:
+    f = tmp_path / "file.txt"
+    f.write_bytes(b"data")
+    with pytest.raises(ValueError, match="is not a directory"):
+        inference.verify_output_dir(f)
+
+
+def test_verify_output_dir_valid(tmp_path: pathlib.Path) -> None:
+    inference.verify_output_dir(tmp_path)
+
+
+def test_unwrap_output_bad_shape() -> None:
+    with pytest.raises(ValueError, match="three-dimensional"):
+        inference.unwrap_output(np.ones((100, 88)), 44100, 30, 7424)
+
+
+def test_unwrap_output_valid_shape() -> None:
+    result = inference.unwrap_output(np.ones((2, 172, 88)), 44100, 30, 7424)
+    assert result is not None
+    assert len(result.shape) == 2
