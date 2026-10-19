@@ -15,8 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import atexit
 import os
-import uuid
+import shutil
+import tempfile
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
@@ -37,6 +39,13 @@ from basic_pitch.constants import (
 )
 
 N_SAMPLES_PER_TRACK = 20
+
+
+def validation_cache_path() -> str:
+    """Return a new file prefix for caching a validation set, in a temporary directory that is removed at exit."""
+    cache_dir = tempfile.mkdtemp(prefix="validation_set_cache_")
+    atexit.register(shutil.rmtree, cache_dir, ignore_errors=True)
+    return os.path.join(cache_dir, "cache")
 
 
 def prepare_datasets(
@@ -94,7 +103,7 @@ def prepare_datasets(
         ds_validation.repeat()
         .batch(batch_size)
         .take(validation_steps)
-        .cache(f"validation_set_cache_{str(uuid.uuid4())}")
+        .cache(validation_cache_path())
         .repeat()
         .prefetch(tf.data.AUTOTUNE)
     )
@@ -154,7 +163,7 @@ def prepare_visualization_datasets(
         ds_validation.repeat()
         .batch(batch_size)
         .take(validation_steps)
-        .cache(f"validation_set_cache_{str(uuid.uuid4())}")
+        .cache(validation_cache_path())
         .repeat()
         .prefetch(tf.data.AUTOTUNE)
     )

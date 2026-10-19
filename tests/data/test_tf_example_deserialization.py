@@ -16,13 +16,16 @@
 # limitations under the License.
 
 import apache_beam as beam
+import atexit
 import numpy as np
+import os
 import pathlib
+import pytest
 import shutil
 import tensorflow as tf
 
 from apache_beam.testing.test_pipeline import TestPipeline
-from typing import List
+from typing import Any, List
 
 from basic_pitch.constants import Split
 from basic_pitch.data.datasets.guitarset import GuitarSetToTfExample
@@ -32,6 +35,7 @@ from basic_pitch.data.tf_example_deserialization import (
     prepare_visualization_datasets,
     sample_datasets,
     transcription_file_generator,
+    validation_cache_path,
 )
 
 from utils import create_mock_wav
@@ -185,3 +189,39 @@ def test_transcription_file_generator_valid(tmp_path: pathlib.Path) -> None:
         next(generator)
     except Exception as e:
         assert isinstance(e, StopIteration)
+
+
+def test_validation_sets_leave_no_cache_files_in_the_working_directory(
+    tmp_path: pathlib.Path, mock_guitarset_index: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    datasets_home = setup_test_resources(tmp_path)
+    work_dir = tmp_path / "work"
+    work_dir.mkdir()
+    monkeypatch.chdir(work_dir)
+
+    for ds_valid in (
+        prepare_datasets(str(datasets_home), 1, 1, 1, ["guitarset"], np.array([1]))[1],
+        prepare_visualization_datasets(str(datasets_home), 1, 1, ["guitarset"], np.array([1]))[1],
+    ):
+        iterator = iter(ds_valid)
+        first = next(iterator)
+        second = next(iterator)  # the second pass reads the cached batch
+        np.testing.assert_array_equal(first[0].numpy(), second[0].numpy())
+
+    assert list(work_dir.iterdir()) == []
+
+
+def test_validation_cache_paths_are_unique_and_removed_at_exit(monkeypatch: pytest.MonkeyPatch) -> None:
+    registered: List[Any] = []
+    monkeypatch.setattr(
+        atexit, "register", lambda function, *args, **kwargs: registered.append((function, args, kwargs))
+    )
+
+    first, second = validation_cache_path(), validation_cache_path()
+
+    assert first != second
+    assert os.path.isdir(os.path.dirname(first))
+    for function, args, kwargs in registered:
+        function(*args, **kwargs)
+    assert not os.path.exists(os.path.dirname(first))
+    assert not os.path.exists(os.path.dirname(second))
