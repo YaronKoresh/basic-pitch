@@ -148,9 +148,11 @@ def get_window_dispatch(window: Union[str, Tuple[str, float]], N: int, fftbins: 
             sigma = np.floor(-N / 2 / np.sqrt(-2 * np.log(10 ** (-window[1] / 20))))
             return scipy.signal.get_window(("gaussian", sigma), N, fftbins=fftbins)
         else:
-            Warning("Tuple windows may have undesired behaviour regarding Q factor")
+            warnings.warn("Tuple windows may have undesired behaviour regarding Q factor")
+            return scipy.signal.get_window(window, N, fftbins=fftbins)
     elif isinstance(window, float):
-        Warning("You are using Kaiser window with beta factor " + str(window) + ". Correct behaviour not checked.")
+        warnings.warn("You are using Kaiser window with beta factor " + str(window) + ". Correct behaviour not checked.")
+        return scipy.signal.get_window(window, N, fftbins=fftbins)
     else:
         raise Exception("The function get_window from scipy only supports strings, tuples and floats.")
 
