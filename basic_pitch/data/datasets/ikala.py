@@ -19,7 +19,6 @@ import argparse
 import logging
 import os
 import random
-import sys
 import time
 from typing import Any, Dict, List, Tuple, Optional
 
@@ -139,7 +138,7 @@ class IkalaToTfExample(beam.DoFn):
 def create_input_data(train_percent: float, seed: Optional[int] = None) -> List[Tuple[str, str]]:
     assert train_percent < 1.0, "Don't over allocate the data!"
 
-    if seed:
+    if seed is not None:
         random.seed(seed)
 
     ikala = mirdata.initialize("ikala")
@@ -185,6 +184,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     commandline.add_default(parser, os.path.basename(os.path.splitext(__file__)[0]))
     commandline.add_split(parser)
-    known_args, pipeline_args = parser.parse_known_args(sys.argv)
+    known_args, pipeline_args = parser.parse_known_args()
 
     main(known_args, pipeline_args)
