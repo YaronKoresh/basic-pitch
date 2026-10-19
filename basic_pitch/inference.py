@@ -624,6 +624,10 @@ def predict_and_save(
     verify_output_dir(output_directory)
     verify_unique_output_names(audio_path_list)
 
+    # load the model once for all the audio files, and fail before processing any if it cannot be loaded
+    if not isinstance(model_or_model_path, Model):
+        model_or_model_path = Model(model_or_model_path)
+
     unreadable_audio_paths = []
     for audio_path in audio_path_list:
         print("")

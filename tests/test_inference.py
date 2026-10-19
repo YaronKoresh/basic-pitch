@@ -366,6 +366,44 @@ def test_predict_and_save_rejects_a_missing_output_directory_before_processing(t
     assert not missing_dir.exists()
 
 
+def test_predict_and_save_loads_the_model_once_for_all_audio_files(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    loads = []
+    original_init = inference.Model.__init__
+
+    def counting_init(self: inference.Model, model_path: object) -> None:
+        loads.append(model_path)
+        original_init(self, model_path)  # type: ignore
+
+    monkeypatch.setattr(inference.Model, "__init__", counting_init)
+    audio_paths = []
+    for name in ("first.wav", "second.wav"):
+        audio = tmp_path / name
+        audio.write_bytes((RESOURCES_PATH / "vocadito_10.wav").read_bytes())
+        audio_paths.append(audio)
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+
+    inference.predict_and_save(audio_paths, output_dir, True, False, False, False, ICASSP_2022_MODEL_PATH)
+
+    assert len(loads) == 1
+    for name in ("first", "second"):
+        assert (output_dir / f"{name}_basic_pitch.mid").exists()
+
+
+def test_predict_and_save_rejects_an_unloadable_model_before_processing(tmp_path: pathlib.Path) -> None:
+    audio = tmp_path / "audio.wav"
+    audio.write_bytes((RESOURCES_PATH / "vocadito_10.wav").read_bytes())
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+
+    with pytest.raises(ValueError, match="cannot be loaded"):
+        inference.predict_and_save([audio], output_dir, True, False, False, False, tmp_path / "missing_model")
+
+    assert list(output_dir.iterdir()) == []
+
+
 def test_verify_input_path_non_existent(tmp_path: pathlib.Path) -> None:
     with pytest.raises(ValueError, match="does not exist"):
         inference.verify_input_path(tmp_path / "missing.wav")
