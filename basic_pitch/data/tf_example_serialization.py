@@ -103,7 +103,8 @@ def to_transcription_tfexample(
     """
     assert sox.file_info.sample_rate(audio_wav_file_path) == AUDIO_SAMPLE_RATE
     assert sox.file_info.channels(audio_wav_file_path) == AUDIO_N_CHANNELS
-    encoded_wav = open(audio_wav_file_path, "rb").read()
+    with open(audio_wav_file_path, "rb") as f:
+        encoded_wav = f.read()
     return _to_transcription_tfex(
         file_id,
         source,
