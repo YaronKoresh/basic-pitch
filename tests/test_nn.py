@@ -19,6 +19,7 @@ from typing import Iterator, Tuple
 import unittest
 
 import numpy as np
+import pytest
 import tensorflow as tf
 
 from basic_pitch import models, nn
@@ -121,3 +122,25 @@ class TestHarmonicStacking(unittest.TestCase):
                 1,
             )
             break
+
+
+class TestLossFunctions(unittest.TestCase):
+    def test_loss_has_all_keys(self) -> None:
+        result = models.loss()
+        assert set(result.keys()) == {"contour", "note", "onset"}
+
+    def test_loss_no_contour_excludes_contour(self) -> None:
+        result = models.loss_no_contour()
+        assert set(result.keys()) == {"note", "onset"}
+        assert "contour" not in result
+
+    def test_loss_no_contour_weighted(self) -> None:
+        result = models.loss_no_contour(weighted=True, positive_weight=0.7)
+        assert set(result.keys()) == {"note", "onset"}
+
+
+class TestModelNoContours(unittest.TestCase):
+    def test_model_no_contours_compiles_with_loss_no_contour(self) -> None:
+        m = models.model(no_contours=True)
+        loss = models.loss_no_contour()
+        m.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(0.001))

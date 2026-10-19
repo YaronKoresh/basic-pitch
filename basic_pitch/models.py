@@ -146,6 +146,30 @@ def loss(
     }
 
 
+def loss_no_contour(
+    label_smoothing: float = DEFAULT_LABEL_SMOOTHING,
+    weighted: bool = False,
+    positive_weight: float = DEFAULT_POSITIVE_WEIGHT,
+) -> Dict[str, Any]:
+    """Creates a keras-compatible dictionary of loss functions for note and onset only.
+
+    Args:
+        label_smoothing: Smoothing factor. Squeezes labels towards 0.5.
+        weighted: Whether or not to use a weighted cross entropy loss.
+        positive_weight: Weighting factor for the positive labels.
+
+    Returns:
+        A dictionary with keys "note" and "onset" with functions as values.
+
+    """
+    loss_fn = lambda x, y: transcription_loss(x, y, label_smoothing=label_smoothing)
+    loss_onset = onset_loss(weighted, label_smoothing, positive_weight)
+    return {
+        "note": loss_fn,
+        "onset": loss_onset,
+    }
+
+
 def _initializer() -> tf.keras.initializers.VarianceScaling:
     return tf.keras.initializers.VarianceScaling(scale=2.0, mode="fan_avg", distribution="uniform", seed=None)
 

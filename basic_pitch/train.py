@@ -140,11 +140,10 @@ def main(
         ),
     ]
 
-    # if no_contours:
-    #     loss = models.loss_no_contour(weighted=weighted_onset_loss, positive_weight=positive_onset_weight)
-    # else:
-    #     loss = models.loss(weighted=weighted_onset_loss, positive_weight=positive_onset_weight)
-    loss = models.loss(weighted=weighted_onset_loss, positive_weight=positive_onset_weight)
+    if no_contours:
+        loss = models.loss_no_contour(weighted=weighted_onset_loss, positive_weight=positive_onset_weight)
+    else:
+        loss = models.loss(weighted=weighted_onset_loss, positive_weight=positive_onset_weight)
 
     # train
     model.compile(
