@@ -62,3 +62,8 @@ def test_spectrogram_can_be_rebuilt_from_its_config() -> None:
 def test_stft_rejects_lengths_it_cannot_use(arguments: Dict[str, Any]) -> None:
     with pytest.raises(ValueError):
         Stft(**{"fft_length": 256, **arguments})
+
+
+def test_stft_accepts_numpy_integer_lengths() -> None:
+    layer = Stft(fft_length=np.int64(256), window_length=np.int32(128), hop_length=np.int64(64))
+    assert layer(tf.zeros((1, 2048))).shape == (1, 33, 129)

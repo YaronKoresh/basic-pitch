@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import numbers
 from typing import Any, Callable, Optional
 import tensorflow as tf
 from basic_pitch.layers.math import log_base_b
@@ -62,7 +63,9 @@ class Stft(tf.keras.layers.Layer):
             ("window_length", window_length),
             ("hop_length", hop_length),
         ):
-            if length is not None and (isinstance(length, bool) or not isinstance(length, int) or length < 1):
+            if length is not None and (
+                isinstance(length, bool) or not isinstance(length, numbers.Integral) or length < 1
+            ):
                 raise ValueError(f"{length_name} must be a whole number above 0, got {length}.")
         if window_length is not None and window_length > fft_length:
             raise ValueError(f"window_length ({window_length}) must not be longer than fft_length ({fft_length}).")
