@@ -445,3 +445,16 @@ def test_unwrap_output_valid_shape() -> None:
     result = inference.unwrap_output(np.ones((2, 172, 88)), 44100, 30, 7424)
     assert result is not None
     assert len(result.shape) == 2
+
+
+@pytest.mark.parametrize("function", [inference.predict, inference.predict_and_save])
+def test_documented_arguments_of_the_public_functions_exist_in_their_signature(function) -> None:  # type: ignore
+    import inspect
+    import re
+
+    docstring = inspect.cleandoc(function.__doc__)
+    arguments_section = re.search(r"Args:\n(.*?)(?:\n\s*\n|\nReturns|$)", docstring, re.DOTALL)
+    assert arguments_section is not None
+    documented = re.findall(r"^ {4}(\w+):", arguments_section.group(1), re.MULTILINE)
+    assert documented
+    assert set(documented) <= set(inspect.signature(function).parameters)
