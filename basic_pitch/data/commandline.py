@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import argparse
+import math
 import os
 
 from pathlib import Path
@@ -87,3 +88,24 @@ def add_split(
         default=split_seed,
         help="Seed for random number generator used in split generation",
     )
+
+
+def verify_split_percents(train_percent: float, validation_percent: float = 0.0) -> None:
+    """Raise a ValueError if the split percentages cannot divide the tracks into non-empty train and test parts.
+
+    Args:
+        train_percent: Fraction of the tracks to mark as train.
+        validation_percent: Fraction of the tracks to mark as validation.
+    """
+    for name, value in (("train", train_percent), ("validation", validation_percent)):
+        if not math.isfinite(value):
+            raise ValueError(f"The {name} percent must be a finite number, got {value}.")
+    if train_percent <= 0:
+        raise ValueError(f"The train percent must be above 0, got {train_percent}.")
+    if validation_percent < 0:
+        raise ValueError(f"The validation percent must not be negative, got {validation_percent}.")
+    if train_percent + validation_percent >= 1.0:
+        raise ValueError(
+            f"Don't over allocate the data! The train percent ({train_percent}) and the validation percent "
+            f"({validation_percent}) must add up to less than 1."
+        )

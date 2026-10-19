@@ -16,6 +16,7 @@
 # limitations under the License.
 import apache_beam as beam
 import itertools
+import pytest
 import os
 import pathlib
 import shutil
@@ -99,9 +100,5 @@ def test_guitarset_create_input_data(mock_guitarset_index: None) -> None:
 
 
 def test_guitarset_create_input_data_overallocate() -> None:
-    try:
+    with pytest.raises(ValueError, match="over allocate"):
         create_input_data(train_percent=0.6, validation_percent=0.6)
-    except AssertionError:
-        assert True
-    else:
-        assert False

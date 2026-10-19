@@ -126,7 +126,7 @@ class GuitarSetToTfExample(beam.DoFn):
 def create_input_data(
     train_percent: float, validation_percent: float, seed: Optional[int] = None
 ) -> List[Tuple[str, str]]:
-    assert train_percent + validation_percent < 1.0, "Don't over allocate the data!"
+    commandline.verify_split_percents(train_percent, validation_percent)
 
     # Test percent is 1 - train - validation
     validation_bound = train_percent

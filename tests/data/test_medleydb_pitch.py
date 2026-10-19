@@ -17,6 +17,7 @@
 import apache_beam as beam
 import itertools
 import os
+import pytest
 
 from apache_beam.testing.test_pipeline import TestPipeline
 
@@ -60,9 +61,5 @@ def test_medleydb_create_input_data(mock_medleydb_pitch_index: None) -> None:
 
 
 def test_create_input_data_overallocate() -> None:
-    try:
+    with pytest.raises(ValueError, match="over allocate"):
         create_input_data(train_percent=1.1)
-    except AssertionError:
-        assert True
-    else:
-        assert False
