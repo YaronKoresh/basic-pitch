@@ -656,7 +656,7 @@ def output_to_notes_polyphonic(
         # find time index at this frequency band where the frames drop below an energy threshold
         i = note_start_idx + 1
         k = 0  # number of frames since energy dropped below threshold
-        while i < n_frames - 1 and k < energy_tol:
+        while i < n_frames and k < energy_tol:
             if remaining_energy[i, freq_idx] < frame_thresh:
                 k += 1
             else:

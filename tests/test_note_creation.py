@@ -568,6 +568,17 @@ def test_note_shorter_than_the_minimum_note_length_is_dropped() -> None:
     assert output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None, melodia_trick=False) == []
 
 
+def test_note_extending_to_last_frame_includes_that_frame() -> None:
+    n_frames = 40
+    onsets = np.zeros((n_frames, 88))
+    frames = np.zeros((n_frames, 88))
+    frames[5:n_frames, 40] = 0.9
+    onsets[5, 40] = 0.9
+    notes = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 11, False, None, None, melodia_trick=False)
+    assert len(notes) == 1
+    assert notes[0][1] == n_frames
+
+
 def test_default_minimum_note_length_keeps_a_sixteenth_note_at_115_bpm() -> None:
     sixteenth_s = 60 / 115 / 4
     min_note_len = int(np.round(DEFAULT_MINIMUM_NOTE_LENGTH_MS / 1000 * (AUDIO_SAMPLE_RATE / FFT_HOP)))
