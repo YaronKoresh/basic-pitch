@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import configparser
 import pathlib
 import subprocess
 import sys
@@ -98,3 +99,21 @@ def test_package_imports_without_any_model_runtime() -> None:
     result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == "nmp"
+
+
+def test_tox_mypy_command_can_check_both_conftest_files() -> None:
+    pytest.importorskip("mypy")
+    tox = configparser.ConfigParser(interpolation=None)
+    tox.read(PYPROJECT.parent / "tox.ini")
+    command = tox["testenv:mypy"]["commands"].split()
+    assert command[0] == "mypy"
+    flags = [argument for argument in command[1:] if argument.startswith("--")]
+    assert "--explicit-package-bases" in flags
+
+    result = subprocess.run(
+        [sys.executable, "-m", "mypy", "tests/conftest.py", "tests/data/conftest.py", *flags],
+        cwd=PYPROJECT.parent,
+        capture_output=True,
+        text=True,
+    )
+    assert "Duplicate module" not in result.stdout + result.stderr
