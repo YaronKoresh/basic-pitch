@@ -258,7 +258,7 @@ def sonify_salience(
 
 
 def midi_pitch_to_contour_bin(pitch_midi: int) -> np.array:
-    """Convert midi pitch to conrresponding index in contour matrix
+    """Convert midi pitch to corresponding index in contour matrix
 
     Args:
         pitch_midi: pitch in midi

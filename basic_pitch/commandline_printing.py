@@ -45,7 +45,7 @@ def generating_file_message(output_type: str) -> None:
 
 
 def file_saved_confirmation(output_type: str, save_path: Union[pathlib.Path, str]) -> None:
-    """Print a confirmation that the file was saved succesfully
+    """Print a confirmation that the file was saved successfully
 
     Args:
         output_type: The kind of file that is being generated.
@@ -70,7 +70,7 @@ def failed_to_save(output_type: str, save_path: Union[pathlib.Path, str]) -> Non
 @contextmanager
 def no_tf_warnings() -> Iterator[None]:
     """
-    Supress tensorflow warnings in this context
+    Suppress tensorflow warnings in this context
     """
     tf_logging_level = os.environ.get(TF_LOG_LEVEL_KEY)
     os.environ[TF_LOG_LEVEL_KEY] = TF_LOG_LEVEL_NO_WARNINGS_VALUE
