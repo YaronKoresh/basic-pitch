@@ -65,7 +65,7 @@ class MedleyDbPitchToTfExample(beam.DoFn):
             N_FREQ_BINS_NOTES,
             N_FREQ_BINS_CONTOURS,
         )
-        from basic_pitch.dataset import tf_example_serialization
+        from basic_pitch.data import tf_example_serialization
 
         logging.info(f"Processing {element}")
         batch = []
