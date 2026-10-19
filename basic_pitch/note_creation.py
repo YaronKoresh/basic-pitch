@@ -721,7 +721,7 @@ def output_to_notes_polyphonic(
 
                 i += 1
 
-            i_end = i - 1 - k  # go back to frame above threshold
+            i_end = i - k
 
             # backward pass
             i = i_mid - 1
@@ -742,7 +742,7 @@ def output_to_notes_polyphonic(
 
             i_start = i + 1 + k  # go back to frame above threshold
             assert i_start >= 0, "{}".format(i_start)
-            assert i_end < n_frames
+            assert i_end <= n_frames
 
             if i_end - i_start < max(min_note_len, 1):
                 # note is too short, skip it
