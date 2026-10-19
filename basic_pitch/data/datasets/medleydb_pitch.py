@@ -136,7 +136,7 @@ class MedleyDbPitchToTfExample(beam.DoFn):
 def create_input_data(train_percent: float, seed: Optional[int] = None) -> List[Tuple[str, str]]:
     assert train_percent < 1.0, "Don't over allocate the data!"
 
-    if seed:
+    if seed is not None:
         random.seed(seed)
 
     medleydb_pitch = mirdata.initialize("medleydb_pitch")
