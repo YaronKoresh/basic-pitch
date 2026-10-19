@@ -55,10 +55,10 @@ def create_mock_flac(output_fpath: pathlib.Path) -> None:
     amplitude = 0.5
 
     t = np.linspace(0, duration, int(sample_rate * duration), endpoint=False)
-    sin_wave = amplitude * np.sin(duration * np.pi * frequency * t)
+    sin_wave = amplitude * np.sin(2 * np.pi * frequency * t)
 
     # Save as a FLAC file
-    sf.write(str(output_fpath), sin_wave, frequency, format="FLAC")
+    sf.write(str(output_fpath), sin_wave, sample_rate, format="FLAC")
 
     logging.info(f"Mock FLAC file {str(output_fpath)} created successfully.")
 
