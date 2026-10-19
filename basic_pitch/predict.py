@@ -99,7 +99,7 @@ def main() -> None:
         "--minimum-note-length",
         type=float,
         default=116.0,
-        help="The minimum allowed note length, in miliseconds.",
+        help="The minimum allowed note length, in milliseconds.",
     )
     parser.add_argument(
         "--minimum-frequency",
