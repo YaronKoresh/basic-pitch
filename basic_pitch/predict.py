@@ -54,7 +54,7 @@ def main() -> None:
         "--model-serialization",
         type=str,
         choices=["tf", "coreml", "tflite", "onnx"],
-        help="If used, --model-path is ignored and instead the model serialization type" "specified is used.",
+        help="If used, --model-path is ignored and instead the model serialization type specified is used.",
     )
     parser.add_argument(
         "--save-midi",
