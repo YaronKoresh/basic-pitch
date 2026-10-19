@@ -86,14 +86,12 @@ def prepare_datasets(
 
     # training dataset
     if training_shuffle_buffer_size > 0:
-        # Lets try to cache before the shuffle. This is the entire training dataset so we'll cache
-        # to memory
-        ds_train = (
-            ds_train.shuffle(training_shuffle_buffer_size, reshuffle_each_iteration=True)
-            .repeat()
-            .batch(batch_size)
-            .prefetch(tf.data.AUTOTUNE)
-        )
+        ds_train = ds_train.shuffle(training_shuffle_buffer_size, reshuffle_each_iteration=True)
+    ds_train = (
+        ds_train.repeat()
+        .batch(batch_size)
+        .prefetch(tf.data.AUTOTUNE)
+    )
 
     # validation dataset
     ds_validation = (
