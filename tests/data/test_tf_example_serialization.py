@@ -16,6 +16,9 @@
 # limitations under the License.
 
 import pathlib
+import numpy as np
+import pytest
+import soundfile as sf
 import sox
 import tensorflow as tf
 
@@ -91,3 +94,25 @@ def test_to_transcription_tfexample(tmpdir: str) -> None:
         tf.io.parse_tensor(example.features.feature["contours_shape"].bytes_list.value[0], out_type=tf.int64)
         == contours_shape
     )
+
+
+@pytest.mark.parametrize("sample_rate, channels", [(AUDIO_SAMPLE_RATE, 2), (44100, AUDIO_N_CHANNELS)])
+def test_to_transcription_tfexample_rejects_audio_of_the_wrong_format(
+    tmp_path: pathlib.Path, sample_rate: int, channels: int
+) -> None:
+    wav_path = tmp_path / "wrong.wav"
+    sf.write(str(wav_path), np.zeros((sample_rate // 10, channels), dtype=np.float32), sample_rate)
+    with pytest.raises(ValueError, match="must be a 22050 Hz file with 1 channel"):
+        to_transcription_tfexample(
+            file_id="test",
+            source="maestro",
+            audio_wav_file_path=str(wav_path),
+            notes_indices=[],
+            notes_values=[],
+            onsets_indices=[],
+            onsets_values=[],
+            contours_indices=[],
+            contours_values=[],
+            notes_onsets_shape=(1, 1),
+            contours_shape=(1, 1),
+        )

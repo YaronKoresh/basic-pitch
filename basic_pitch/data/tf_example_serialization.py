@@ -91,7 +91,7 @@ def to_transcription_tfexample(
     """
     - `file_id` string
     - `source` string  (e.g., "maestro")
-    - `audio_file_path` path to a local WAV file (must be 22kHz stereo, checked)
+    - `audio_file_path` path to a local WAV file (must be 22.05kHz mono, checked)
     - `notes_indices` [(time, freq)], integers
     - `notes_values` [float]
     - `onsets_indices` same as above
@@ -101,8 +101,13 @@ def to_transcription_tfexample(
     - `notes_onsets_shape` (time, freq), ints
     - `contours_onsets_shape` (time, freq), ints
     """
-    assert sox.file_info.sample_rate(audio_wav_file_path) == AUDIO_SAMPLE_RATE
-    assert sox.file_info.channels(audio_wav_file_path) == AUDIO_N_CHANNELS
+    sample_rate = sox.file_info.sample_rate(audio_wav_file_path)
+    channels = sox.file_info.channels(audio_wav_file_path)
+    if sample_rate != AUDIO_SAMPLE_RATE or channels != AUDIO_N_CHANNELS:
+        raise ValueError(
+            f"{audio_wav_file_path} must be a {AUDIO_SAMPLE_RATE} Hz file with {AUDIO_N_CHANNELS} channel(s), "
+            f"got {sample_rate} Hz and {channels} channel(s)."
+        )
     with open(audio_wav_file_path, "rb") as f:
         encoded_wav = f.read()
     return _to_transcription_tfex(
