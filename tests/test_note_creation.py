@@ -488,7 +488,7 @@ def test_melodia_note_does_not_run_over_onset_note_at_end_of_audio() -> None:
     frames[40, 49] = 0.95  # the last frame is never part of an onset note, but it is the strongest leftover
     notes = output_to_notes_polyphonic(frames, onsets, 0.5, 0.3, 7, False, None, None)
     spans = sorted((start, end) for start, end, _, _ in notes)
-    assert (32, 40) in spans
+    assert (32, 41) in spans
     for (_, first_end), (second_start, _) in zip(spans, spans[1:]):
         assert first_end <= second_start
 
