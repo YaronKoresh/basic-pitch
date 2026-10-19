@@ -4,12 +4,12 @@ import pathlib
 from unittest import mock
 
 RESOURCES_PATH = pathlib.Path(__file__).parent.parent / "resources"
-GUITAR_SET_TEST_INDEX = json.load(open(RESOURCES_PATH / "data" / "guitarset" / "dummy_index.json"))
-IKALA_TEST_INDEX = json.load(open(RESOURCES_PATH / "data" / "ikala" / "dummy_index.json"))
-MAESTRO_TEST_INDEX = json.load(open(RESOURCES_PATH / "data" / "maestro" / "dummy_index.json"))
-METADATA_TEST_INDEX = json.load(open(RESOURCES_PATH / "data" / "maestro" / "maestro-v2.0.0.json"))
-MEDLEYDB_PITCH_TEST_INDEX = json.load(open(RESOURCES_PATH / "data" / "medleydb_pitch" / "dummy_index.json"))
-SLAKH_TEST_INDEX = json.load(open(RESOURCES_PATH / "data" / "slakh" / "dummy_index.json"))
+GUITAR_SET_TEST_INDEX = json.loads((RESOURCES_PATH / "data" / "guitarset" / "dummy_index.json").read_text())
+IKALA_TEST_INDEX = json.loads((RESOURCES_PATH / "data" / "ikala" / "dummy_index.json").read_text())
+MAESTRO_TEST_INDEX = json.loads((RESOURCES_PATH / "data" / "maestro" / "dummy_index.json").read_text())
+METADATA_TEST_INDEX = json.loads((RESOURCES_PATH / "data" / "maestro" / "maestro-v2.0.0.json").read_text())
+MEDLEYDB_PITCH_TEST_INDEX = json.loads((RESOURCES_PATH / "data" / "medleydb_pitch" / "dummy_index.json").read_text())
+SLAKH_TEST_INDEX = json.loads((RESOURCES_PATH / "data" / "slakh" / "dummy_index.json").read_text())
 
 
 @pytest.fixture  # type: ignore[misc]
