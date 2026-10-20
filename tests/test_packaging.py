@@ -174,3 +174,19 @@ def test_install_commands_in_the_missing_runtime_warnings_are_valid() -> None:
     for command in commands:
         for argument in shlex.split(command):
             Requirement(argument)
+
+
+def _pyproject() -> Dict[str, Any]:
+    with open(PYPROJECT, "rb") as f:
+        pyproject: Dict[str, Any] = tomllib.load(f)
+    return pyproject
+
+
+def test_wheel_is_not_tagged_as_universal_because_the_package_requires_python_3() -> None:
+    assert "bdist_wheel" not in _pyproject().get("tool", {}).get("distutils", {})
+
+
+def test_build_requirements_do_not_include_cython_because_the_package_has_no_extensions() -> None:
+    requires = {Requirement(requirement).name.lower() for requirement in _pyproject()["build-system"]["requires"]}
+    assert "cython" not in requires
+    assert not list(PYPROJECT.parent.rglob("*.pyx"))

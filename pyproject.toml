@@ -86,14 +86,10 @@ dev = [
 	"tox",
 ]
 
-[tool.distutils.bdist_wheel]
-universal = true
-
 [build-system]
 requires = [
 	"setuptools>=40.8.0",
 	"wheel",
-	"cython",
 ]
 
 [tool.black]
