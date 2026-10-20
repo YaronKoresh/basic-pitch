@@ -22,6 +22,7 @@ import os
 import pathlib
 import tempfile
 from typing import Dict, List
+from unittest import mock
 
 import librosa
 import pretty_midi
@@ -161,6 +162,20 @@ def test_predict_and_save_continues_after_unreadable_audio_and_reports_it() -> N
 
         assert not (output_dir / "bad_basic_pitch.mid").exists()
         assert (output_dir / "good_basic_pitch.mid").exists()
+
+
+def test_predict_and_save_names_the_error_when_the_reason_for_skipping_audio_is_blank(
+    capsys: pytest.CaptureFixture[str], tmp_path: pathlib.Path
+) -> None:
+    bad = tmp_path / "bad.wav"
+    bad.write_bytes(b"not audio")
+    with mock.patch.object(inference, "predict", side_effect=EOFError()):
+        with pytest.raises(IOError):
+            inference.predict_and_save(
+                [bad], tmp_path, True, False, False, False, model_or_model_path=ICASSP_2022_MODEL_PATH
+            )
+    output = capsys.readouterr().out
+    assert f"Could not process {bad}: EOFError. Skipping it." in output
 
 
 def test_predict_and_save_rejects_invalid_note_options_before_processing() -> None:
