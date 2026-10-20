@@ -15,7 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
+
 import numpy as np
+import numpy.typing as npt
 
 from enum import Enum
 
@@ -54,9 +57,9 @@ DATASET_SAMPLING_FREQUENCY = {
 }
 
 
-def _freq_bins(bins_per_semitone: int, base_frequency: float, n_semitones: int) -> np.array:
+def _freq_bins(bins_per_semitone: int, base_frequency: float, n_semitones: int) -> npt.NDArray[Any]:
     d = 2.0 ** (1.0 / (SEMITONES_PER_OCTAVE * bins_per_semitone))
-    bin_freqs = base_frequency * d ** np.arange(bins_per_semitone * n_semitones)
+    bin_freqs: npt.NDArray[Any] = np.asarray(base_frequency * d ** np.arange(bins_per_semitone * n_semitones))
     return bin_freqs
 
 

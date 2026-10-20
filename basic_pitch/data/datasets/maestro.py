@@ -19,7 +19,7 @@ import argparse
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional, TextIO, Tuple
+from typing import Any, BinaryIO, Dict, List, Optional, Tuple
 
 import apache_beam as beam
 import mirdata
@@ -27,7 +27,7 @@ import mirdata
 from basic_pitch.data import commandline, pipeline
 
 
-def read_in_chunks(file_object: TextIO, chunk_size: int = 1024) -> Any:
+def read_in_chunks(file_object: BinaryIO, chunk_size: int = 1024) -> Any:
     """Lazy function (generator) to read a file piece by piece.
     Default chunk size: 1k."""
     while True:

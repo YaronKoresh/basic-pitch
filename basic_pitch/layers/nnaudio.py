@@ -24,6 +24,7 @@ import numbers
 import warnings
 import tensorflow as tf
 import numpy as np
+import numpy.typing as npt
 from typing import Any, List, Optional, Tuple, Union
 
 import scipy.signal
@@ -49,7 +50,7 @@ def create_lowpass_filter(
     kernel_length: int = DEFAULT_KERNEL_LENGTH,
     transition_bandwidth: float = DEFAULT_TRANSITION_BANDWIDTH,
     dtype: tf.dtypes.DType = DEFAULT_DTYPE,
-) -> np.ndarray:
+) -> tf.Tensor:
     """
     Calculate the highest frequency we need to preserve and the lowest frequency we allow
     to pass through. Note that frequency is on a scale from 0 to 1 where 0 is 0 and 1 is
@@ -120,7 +121,7 @@ def get_early_downsample_params(
     Q: float,
     n_octaves: int,
     dtype: tf.dtypes.DType,
-) -> Tuple[Union[float, int], int, float, np.array, bool]:
+) -> Tuple[Union[float, int], int, int, Optional[tf.Tensor], bool]:
     """Compute downsampling parameters used for early downsampling"""
 
     window_bandwidth = DEFAULT_WINDOW_BANDWIDTH  # for hann window
@@ -150,9 +151,9 @@ def _is_finite_number(value: object) -> bool:
     )
 
 
-def get_window_dispatch(window: Union[str, float, Tuple[str, float]], N: int, fftbins: bool = True) -> np.array:
+def get_window_dispatch(window: Union[str, float, Tuple[str, float]], N: int, fftbins: bool = True) -> npt.NDArray[Any]:
     if isinstance(window, str):
-        return scipy.signal.get_window(window, N, fftbins=fftbins)
+        return np.asarray(scipy.signal.get_window(window, N, fftbins=fftbins))
     elif isinstance(window, tuple):
         if window[:1] == ("gaussian",):
             if len(window) != 2 or not _is_finite_number(window[1]) or window[1] < 0:
@@ -161,15 +162,15 @@ def get_window_dispatch(window: Union[str, float, Tuple[str, float]], N: int, ff
                     f"of at least 0, got {window}."
                 )
             sigma = np.floor(-N / 2 / np.sqrt(-2 * np.log(10 ** (-window[1] / 20))))
-            return scipy.signal.get_window(("gaussian", sigma), N, fftbins=fftbins)
+            return np.asarray(scipy.signal.get_window(("gaussian", sigma), N, fftbins=fftbins))
         else:
             warnings.warn("Tuple windows may have undesired behaviour regarding Q factor")
-            return scipy.signal.get_window(window, N, fftbins=fftbins)
+            return np.asarray(scipy.signal.get_window(window, N, fftbins=fftbins))
     elif _is_finite_number(window):
         warnings.warn(
             "You are using Kaiser window with beta factor " + str(window) + ". Correct behaviour not checked."
         )
-        return scipy.signal.get_window(float(window), N, fftbins=fftbins)
+        return np.asarray(scipy.signal.get_window(float(window), N, fftbins=fftbins))
     else:
         raise Exception("The function get_window from scipy only supports strings, tuples and floats.")
 
@@ -184,7 +185,7 @@ def create_cqt_kernels(
     window: str = "hann",
     fmax: Optional[float] = None,
     topbin_check: bool = True,
-) -> Tuple[np.array, int, np.array, np.array]:
+) -> Tuple[npt.NDArray[Any], int, npt.NDArray[Any], npt.NDArray[Any]]:
     """
     Automatically create CQT kernels in time domain
     """
@@ -374,7 +375,7 @@ class ConstantPad1D(tf.keras.layers.Layer):
         return config
 
 
-def pad_center(data: np.ndarray, size: int, axis: int = -1, **kwargs: Any) -> np.ndarray:
+def pad_center(data: npt.NDArray[Any], size: int, axis: int = -1, **kwargs: Any) -> npt.NDArray[Any]:
     """Wrapper for np.pad to automatically center an array prior to padding.
     This is analogous to `str.center()`
 
@@ -649,7 +650,7 @@ class CQT2010v2(tf.keras.layers.Layer):
 
             self.early_downsample_filter = early_downsample_filter
         else:
-            self.downsample_factor = 1.0
+            self.downsample_factor = 1
 
         # Preparing CQT kernels
         basis, self.n_fft, _, _ = create_cqt_kernels(

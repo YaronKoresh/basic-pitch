@@ -18,11 +18,12 @@
 import math
 import pathlib
 from collections import defaultdict
-from typing import DefaultDict, Dict, List, Optional, Tuple, Union
+from typing import Any, DefaultDict, Dict, List, Optional, Tuple, Union
 import mir_eval
 import librosa
 import resampy
 import numpy as np
+import numpy.typing as npt
 import pretty_midi
 import scipy
 from scipy.io import wavfile
@@ -120,7 +121,7 @@ def verify_outputs_requested(save_midi: bool, sonify_midi: bool, save_model_outp
 
 
 def model_output_to_notes(
-    output: Dict[str, np.array],
+    output: Dict[str, npt.NDArray[Any]],
     onset_thresh: float,
     frame_thresh: float,
     infer_onsets: bool = True,
@@ -221,8 +222,8 @@ def sonify_midi(midi: pretty_midi.PrettyMIDI, save_path: Union[pathlib.Path, str
 
 
 def sonify_salience(
-    gram: np.array, semitone_resolution: float, save_path: Optional[str] = None, thresh: float = 0.2
-) -> Tuple[np.array, int]:
+    gram: npt.NDArray[Any], semitone_resolution: int, save_path: Optional[str] = None, thresh: float = 0.2
+) -> Tuple[npt.NDArray[Any], int]:
     """Sonify a salience matrix.
 
     Args:
@@ -246,7 +247,7 @@ def sonify_salience(
     times = librosa.core.frames_to_time(
         np.arange(gram.shape[1]),
         sr=AUDIO_SAMPLE_RATE,
-        hop_length=AUDIO_N_SAMPLES / ANNOT_N_FRAMES,  # THIS IS THE CORRECT HOP!!
+        hop_length=AUDIO_N_SAMPLES / ANNOT_N_FRAMES,  # type: ignore[call-overload]  # THE CORRECT HOP IS FRACTIONAL
     )
     gram = np.where(gram < thresh, 0, gram)
     if gram.shape[1] < 2:
@@ -262,7 +263,7 @@ def sonify_salience(
     return y, SONIFY_FS
 
 
-def midi_pitch_to_contour_bin(pitch_midi: int) -> np.array:
+def midi_pitch_to_contour_bin(pitch_midi: int) -> float:
     """Convert midi pitch to corresponding index in contour matrix
 
     Args:
@@ -273,11 +274,11 @@ def midi_pitch_to_contour_bin(pitch_midi: int) -> np.array:
 
     """
     pitch_hz = librosa.midi_to_hz(pitch_midi)
-    return 12.0 * CONTOURS_BINS_PER_SEMITONE * np.log2(pitch_hz / ANNOTATIONS_BASE_FREQUENCY)
+    return float(12.0 * CONTOURS_BINS_PER_SEMITONE * np.log2(pitch_hz / ANNOTATIONS_BASE_FREQUENCY))
 
 
 def get_pitch_bends(
-    contours: np.ndarray, note_events: List[Tuple[int, int, int, float]], n_bins_tolerance: int = 25
+    contours: npt.NDArray[Any], note_events: List[Tuple[int, int, int, float]], n_bins_tolerance: int = 25
 ) -> List[Tuple[int, int, int, float, Optional[List[int]]]]:
     """Given note events and contours, estimate pitch bends per note.
     Pitch bends are represented as a sequence of evenly spaced midi pitch bend control units.
@@ -445,7 +446,7 @@ def drop_overlapping_pitch_bends(
     return note_events
 
 
-def get_inferred_onsets(onsets: np.array, frames: np.array, n_diff: int = 2) -> np.array:
+def get_inferred_onsets(onsets: npt.NDArray[Any], frames: npt.NDArray[Any], n_diff: int = 2) -> npt.NDArray[Any]:
     """Infer onsets from large changes in frame amplitudes.
 
     Args:
@@ -473,12 +474,12 @@ def get_inferred_onsets(onsets: np.array, frames: np.array, n_diff: int = 2) -> 
 
     max_onsets_diff = np.max([onsets, frame_diff], axis=0)  # use the max of the predicted onsets and the differences
 
-    return max_onsets_diff
+    return np.asarray(max_onsets_diff)
 
 
 def constrain_frequency(
-    onsets: np.array, frames: np.array, max_freq: Optional[float], min_freq: Optional[float]
-) -> Tuple[np.array, np.array]:
+    onsets: npt.NDArray[Any], frames: npt.NDArray[Any], max_freq: Optional[float], min_freq: Optional[float]
+) -> Tuple[npt.NDArray[Any], npt.NDArray[Any]]:
     """Zero out activations above or below the max/min frequencies
 
     Args:
@@ -511,7 +512,7 @@ def constrain_frequency(
     return onsets, frames
 
 
-def model_frames_to_time(n_frames: int) -> np.ndarray:
+def model_frames_to_time(n_frames: int) -> npt.NDArray[Any]:
     original_times = librosa.core.frames_to_time(
         np.arange(n_frames),
         sr=AUDIO_SAMPLE_RATE,
@@ -522,7 +523,7 @@ def model_frames_to_time(n_frames: int) -> np.ndarray:
         ANNOT_N_FRAMES - (AUDIO_N_SAMPLES / FFT_HOP)
     ) + MAGIC_ALIGNMENT_OFFSET
     times = original_times - (window_offset * window_numbers)
-    return times
+    return np.asarray(times)
 
 
 HARMONIC_INTERVALS = (12, 19, 24)
@@ -568,7 +569,7 @@ def suppress_harmonic_notes(
     return kept
 
 
-def find_onset_peaks(onsets: np.array) -> Tuple[np.array, np.array]:
+def find_onset_peaks(onsets: npt.NDArray[Any]) -> Tuple[npt.NDArray[Any], npt.NDArray[Any]]:
     """Find the frames where an onset activation peaks, per frequency.
 
     A peak is a frame that is higher than the frame before it and at least as high as the frame after it, so a
@@ -586,13 +587,13 @@ def find_onset_peaks(onsets: np.array) -> Tuple[np.array, np.array]:
     below = np.full((1, onsets.shape[1]), -np.inf)
     previous = np.concatenate([below, onsets[:-1]])
     following = np.concatenate([onsets[1:], below])
-    peaks: Tuple[np.array, np.array] = np.where((onsets > 0) & (onsets > previous) & (onsets >= following))
-    return peaks
+    peaks = np.where((onsets > 0) & (onsets > previous) & (onsets >= following))
+    return peaks[0], peaks[1]
 
 
 def output_to_notes_polyphonic(
-    frames: np.array,
-    onsets: np.array,
+    frames: npt.NDArray[Any],
+    onsets: npt.NDArray[Any],
     onset_thresh: float,
     frame_thresh: float,
     min_note_len: int,

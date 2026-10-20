@@ -20,9 +20,10 @@ import os
 import logging
 import math
 from datetime import datetime, timezone
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import tensorflow as tf
 
 from basic_pitch import models
@@ -64,7 +65,7 @@ def main(
     validation_steps: int,
     size_evaluation_callback_datasets: int,
     datasets_to_use: List[str],
-    dataset_sampling_frequency: np.ndarray,
+    dataset_sampling_frequency: npt.NDArray[Any],
     no_sonify: bool,
     no_contours: bool,
     weighted_onset_loss: bool,

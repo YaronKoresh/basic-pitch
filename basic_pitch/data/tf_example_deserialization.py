@@ -24,6 +24,7 @@ import tempfile
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import tensorflow as tf
 
 # import tensorflow_addons as tfa
@@ -89,7 +90,7 @@ def prepare_datasets(
     batch_size: int,
     validation_steps: int,
     datasets_to_use: List[str],
-    dataset_sampling_frequency: np.ndarray,
+    dataset_sampling_frequency: npt.NDArray[Any],
 ) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
     """
     Return a training and a testing dataset.
@@ -149,7 +150,7 @@ def prepare_visualization_datasets(
     batch_size: int,
     validation_steps: int,
     datasets_to_use: List[str],
-    dataset_sampling_frequency: np.ndarray,
+    dataset_sampling_frequency: npt.NDArray[Any],
 ) -> Tuple[tf.data.Dataset, tf.data.Dataset]:
     """
     Return a training and a testing dataset for visualization
@@ -207,7 +208,7 @@ def sample_datasets(
     split: Split,
     datasets_base_path: str,
     datasets: List[str],
-    dataset_sampling_frequency: np.ndarray,
+    dataset_sampling_frequency: npt.NDArray[Any],
     n_shuffle: int = 1000,
     n_samples_per_track: int = N_SAMPLES_PER_TRACK,
     pairs: bool = False,
@@ -277,7 +278,7 @@ def transcription_file_generator(
     split: Split,
     dataset_names: List[str],
     datasets_base_path: str,
-    sample_weights: np.ndarray,
+    sample_weights: npt.NDArray[Any],
 ) -> Tuple[Callable[[], Iterator[tf.Tensor]], bool]:
     """Reads underlying files and returns file generator
 
@@ -300,7 +301,7 @@ def transcription_file_generator(
     return lambda: _validation_file_generator(file_dict), True
 
 
-def _train_file_generator(x: Dict[str, tf.data.Dataset], weights: np.ndarray) -> Iterator[tf.Tensor]:
+def _train_file_generator(x: Dict[str, tf.data.Dataset], weights: npt.NDArray[Any]) -> Iterator[tf.Tensor]:
     """file generator for training sets"""
     x = {k: list(v) for (k, v) in x.items()}
     keys = list(x.keys())
@@ -555,8 +556,12 @@ def _infer_time_size(onsets: tf.Tensor, contour: tf.Tensor, notes: tf.Tensor) ->
 
 
 def get_sample_weights(
-    audio: tf.Tensor, onsets: np.ndarray, contour: np.ndarray, notes: np.ndarray, metadata: Dict[Any, Any]
-) -> Tuple[tf.Tensor, np.ndarray, np.ndarray, np.ndarray, tf.cond, tf.cond, tf.cond, Dict[Any, Any]]:
+    audio: tf.Tensor,
+    onsets: npt.NDArray[Any],
+    contour: npt.NDArray[Any],
+    notes: npt.NDArray[Any],
+    metadata: Dict[Any, Any],
+) -> Tuple[tf.Tensor, npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any], tf.cond, tf.cond, tf.cond, Dict[Any, Any]]:
     """Add sample weights based on whether or not the target is empty
     If it's empty, the weight is 0, otherwise it's 1. Empty targets get filled
     with matrices of 0's
@@ -623,7 +628,7 @@ def get_sample_weights(
     )
 
 
-def trim_time(data: np.ndarray, start: int, duration: int, sr: int) -> tf.Tensor:
+def trim_time(data: npt.NDArray[Any], start: int, duration: int, sr: int) -> tf.Tensor:
     """
     Slice a data file
     Args:
@@ -643,7 +648,7 @@ def trim_time(data: np.ndarray, start: int, duration: int, sr: int) -> tf.Tensor
 
 
 def extract_window(
-    audio: tf.Tensor, onsets: np.ndarray, contour: np.ndarray, notes: np.ndarray, t_start: int
+    audio: tf.Tensor, onsets: npt.NDArray[Any], contour: npt.NDArray[Any], notes: npt.NDArray[Any], t_start: int
 ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
     """extracts a window of data from the given audio and its associated metadata
 
@@ -670,7 +675,7 @@ def extract_window(
 
 
 def extract_random_window(
-    audio: tf.Tensor, onsets: np.ndarray, contour: np.ndarray, notes: np.ndarray, seed: Optional[int]
+    audio: tf.Tensor, onsets: npt.NDArray[Any], contour: npt.NDArray[Any], notes: npt.NDArray[Any], seed: Optional[int]
 ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
     """Trim transcription data to a fixed length of time
     starting from a random time index.
@@ -701,9 +706,9 @@ def extract_random_window(
 
 def get_transcription_chunks(
     audio: tf.Tensor,
-    onsets: np.ndarray,
-    contour: np.ndarray,
-    notes: np.ndarray,
+    onsets: npt.NDArray[Any],
+    contour: npt.NDArray[Any],
+    notes: npt.NDArray[Any],
     onset_weight: int,
     contour_weight: int,
     note_weight: int,
@@ -751,9 +756,9 @@ def get_transcription_chunks(
 
 def is_not_all_silent_annotations(
     audio: tf.Tensor,
-    onsets: np.ndarray,
-    contour: np.ndarray,
-    notes: np.ndarray,
+    onsets: npt.NDArray[Any],
+    contour: npt.NDArray[Any],
+    notes: npt.NDArray[Any],
     onset_weight: int,
     contour_weight: int,
     note_weight: int,
@@ -766,9 +771,9 @@ def is_not_all_silent_annotations(
 
 def to_transcription_training_input(
     audio: tf.Tensor,
-    onsets: np.ndarray,
-    contour: np.ndarray,
-    notes: np.ndarray,
+    onsets: npt.NDArray[Any],
+    contour: npt.NDArray[Any],
+    notes: npt.NDArray[Any],
     onset_weight: int,
     contour_weight: int,
     note_weight: int,

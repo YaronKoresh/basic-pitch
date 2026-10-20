@@ -271,7 +271,7 @@ def unwrap_output(
     audio_original_length: int,
     n_overlapping_frames: int,
     hop_size: int,
-) -> np.array:
+) -> npt.NDArray[Any]:
     """Unwrap batched model predictions to a single matrix.
 
     Args:
@@ -307,7 +307,7 @@ def run_inference(
     audio_path: Union[pathlib.Path, str],
     model_or_model_path: Union[Model, pathlib.Path, str],
     debug_file: Optional[pathlib.Path] = None,
-) -> Dict[str, np.array]:
+) -> Dict[str, npt.NDArray[Any]]:
     """Run the model on the input audio path.
 
     Args:
@@ -511,7 +511,7 @@ def predict(
     midi_tempo: float = DEFAULT_MIDI_TEMPO,
     suppress_harmonics: bool = True,
 ) -> Tuple[
-    Dict[str, np.array],
+    Dict[str, npt.NDArray[Any]],
     pretty_midi.PrettyMIDI,
     List[Tuple[float, float, int, float, Optional[List[int]]]],
 ]:
