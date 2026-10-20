@@ -17,12 +17,12 @@
 
 import warnings
 
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 import pytest
 
-from basic_pitch.layers.nnaudio import get_window_dispatch, CQT2010v2
+from basic_pitch.layers.nnaudio import ConstantPad1D, ReflectionPad1D, get_window_dispatch, CQT2010v2
 
 
 class TestGetWindowDispatch:
@@ -92,3 +92,36 @@ class TestCQT2010v2PadMode:
         layer = CQT2010v2(sr=22050, hop_length=256, pad_mode="symmetric")
         with pytest.raises(ValueError, match="Unsupported pad_mode"):
             layer.build(input_shape=(None, 22050))
+
+
+class TestPad1D:
+    @pytest.mark.parametrize("layer_class", [ReflectionPad1D, ConstantPad1D])
+    @pytest.mark.parametrize(
+        "padding, left, right",
+        [(3, 3, 3), (np.int64(2), 2, 2), ((4,), 4, 4), ((1, 2), 1, 2), ((0, 3), 0, 3)],
+    )
+    def test_pads_each_side_and_reports_the_padded_width(
+        self, layer_class: Any, padding: Any, left: int, right: int
+    ) -> None:
+        x = np.arange(10, dtype="float32").reshape(1, 1, 10)
+        layer = layer_class(padding)
+        result = layer(x).numpy()
+        assert result.shape == (1, 1, 10 + left + right)
+        assert layer.compute_output_shape((1, 1, 10)) == (1, 1, 10 + left + right)
+        np.testing.assert_array_equal(result[0, 0, left : left + 10], x[0, 0])
+
+    @pytest.mark.parametrize("layer_class", [ReflectionPad1D, ConstantPad1D])
+    @pytest.mark.parametrize("padding", [-1, (1, -2), (1, 2, 3), (), 1.5, True, "2"])
+    def test_rejects_padding_that_cannot_be_used(self, layer_class: Any, padding: Any) -> None:
+        with pytest.raises(ValueError, match="padding"):
+            layer_class(padding)
+
+    @pytest.mark.parametrize("layer_class", [ReflectionPad1D, ConstantPad1D])
+    def test_can_be_rebuilt_from_its_config(self, layer_class: Any) -> None:
+        layer = layer_class((1, 2))
+        rebuilt = layer_class.from_config(layer.get_config())
+        assert rebuilt.left_right_padding == (1, 2)
+
+    def test_constant_padding_uses_its_value(self) -> None:
+        result = ConstantPad1D((1, 2), value=5)(np.zeros((1, 1, 4), dtype="float32")).numpy()
+        assert result[0, 0].tolist() == [5, 0, 0, 0, 0, 5, 5]

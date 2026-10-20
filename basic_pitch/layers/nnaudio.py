@@ -301,21 +301,50 @@ def downsampling_by_n(x: tf.Tensor, filter_kernel: tf.Tensor, n: float, match_to
     return result_ncw
 
 
+def _left_right_padding(padding: Union[int, Tuple[int, ...]]) -> Tuple[int, int]:
+    """Return the (left, right) padding of a 1D padding layer.
+
+    Args:
+        padding: A width used on both sides, or a (width,) or (left, right) tuple.
+
+    Raises:
+        ValueError: If a width is not a whole number of at least 0, or the tuple has more than two widths.
+    """
+    if isinstance(padding, (int, np.integer)):
+        widths: Tuple[Any, ...] = (padding,)
+    elif isinstance(padding, (tuple, list)):
+        widths = tuple(padding)
+    else:
+        raise ValueError(f"padding must be a whole number or a tuple of one or two whole numbers, got {padding!r}.")
+    if not 1 <= len(widths) <= 2:
+        raise ValueError(f"padding must be a whole number or a tuple of one or two whole numbers, got {padding}.")
+    for width in widths:
+        if isinstance(width, bool) or not isinstance(width, (int, np.integer)) or width < 0:
+            raise ValueError(f"padding widths must be whole numbers of at least 0, got {padding}.")
+    return int(widths[0]), int(widths[-1])
+
+
 class ReflectionPad1D(tf.keras.layers.Layer):
     """
     Replica of Torch's nn.ReflectionPad1D in TF.
     """
 
-    def __init__(self, padding: Union[int, Tuple[int]] = 1, **kwargs: Any):
+    def __init__(self, padding: Union[int, Tuple[int, ...]] = 1, **kwargs: Any):
         self.padding = padding
+        self.left_right_padding = _left_right_padding(padding)
         self.input_spec = [tf.keras.layers.InputSpec(ndim=3)]
         super(ReflectionPad1D, self).__init__(**kwargs)
 
     def compute_output_shape(self, s: List[int]) -> Tuple[int, int, int]:
-        return (s[0], s[1], s[2] + 2 * self.padding if isinstance(self.padding, int) else self.padding[0])
+        return (s[0], s[1], s[2] + sum(self.left_right_padding))
 
     def call(self, x: tf.Tensor) -> tf.Tensor:
-        return tf.pad(x, [[0, 0], [0, 0], [self.padding, self.padding]], "REFLECT")
+        return tf.pad(x, [[0, 0], [0, 0], list(self.left_right_padding)], "REFLECT")
+
+    def get_config(self) -> Any:
+        config = super().get_config().copy()
+        config.update({"padding": self.padding})
+        return config
 
 
 class ConstantPad1D(tf.keras.layers.Layer):
@@ -323,17 +352,23 @@ class ConstantPad1D(tf.keras.layers.Layer):
     Replica of Torch's nn.ConstantPad1D in TF.
     """
 
-    def __init__(self, padding: Union[int, Tuple[int]] = 1, value: int = 0, **kwargs: Any):
+    def __init__(self, padding: Union[int, Tuple[int, ...]] = 1, value: int = 0, **kwargs: Any):
         self.padding = padding
+        self.left_right_padding = _left_right_padding(padding)
         self.value = value
         self.input_spec = [tf.keras.layers.InputSpec(ndim=3)]
         super(ConstantPad1D, self).__init__(**kwargs)
 
     def compute_output_shape(self, s: List[int]) -> Tuple[int, int, int]:
-        return (s[0], s[1], s[2] + 2 * self.padding if isinstance(self.padding, int) else self.padding[0])
+        return (s[0], s[1], s[2] + sum(self.left_right_padding))
 
     def call(self, x: tf.Tensor) -> tf.Tensor:
-        return tf.pad(x, [[0, 0], [0, 0], [self.padding, self.padding]], "CONSTANT", self.value)
+        return tf.pad(x, [[0, 0], [0, 0], list(self.left_right_padding)], "CONSTANT", self.value)
+
+    def get_config(self) -> Any:
+        config = super().get_config().copy()
+        config.update({"padding": self.padding, "value": self.value})
+        return config
 
 
 def pad_center(data: np.ndarray, size: int, axis: int = -1, **kwargs: Any) -> np.ndarray:
