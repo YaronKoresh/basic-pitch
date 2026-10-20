@@ -51,6 +51,16 @@ def run_train_cli(source: str, extra_args: List[str]) -> Any:
     return main
 
 
+def test_help_describes_the_directory_layout_of_the_source(capsys: pytest.CaptureFixture[str]) -> None:
+    with mock.patch.object(sys, "argv", ["train", "--help"]):
+        with pytest.raises(SystemExit) as exit_info:
+            train.console_entry_point()
+    assert exit_info.value.code == 0
+    help_text = " ".join(capsys.readouterr().out.split())
+    assert "one folder per processed dataset" in help_text
+    assert "splits/{train,validation}/*.tfrecord" in help_text
+
+
 def test_valid_options_reach_main(source: str) -> None:
     main = run_train_cli(source, ["--training-shuffle-size", "0", "--positive-onset-weight", "1"])
     main.assert_called_once()
