@@ -42,17 +42,21 @@ SPLIT_DATASETS = {"guitarset": True, "ikala": False, "medleydb_pitch": False}
 
 
 def main() -> None:
-    dataset_parser = argparse.ArgumentParser()
-    dataset_parser.add_argument(
-        "dataset",
-        choices=list(DATASET_DICT.keys()),
-        help="The dataset to download / process.",
-    )
+    dataset_help = "The dataset to download / process."
+    # help is left to the parser of the chosen dataset, so that "<dataset> --help" lists its options
+    dataset_parser = argparse.ArgumentParser(add_help=False)
+    dataset_parser.add_argument("dataset", nargs="?", choices=list(DATASET_DICT.keys()), help=dataset_help)
     args, remaining_args = dataset_parser.parse_known_args()
     dataset = args.dataset
+    if dataset is None:
+        # no dataset was given: show the list of datasets for --help, or the usage error otherwise
+        list_parser = argparse.ArgumentParser(prog="bp-download")
+        list_parser.add_argument("dataset", choices=list(DATASET_DICT.keys()), help=dataset_help)
+        list_parser.parse_args(remaining_args)
+        list_parser.error("the following arguments are required: dataset")
     logger.info(f"Downloading and processing {dataset}")
 
-    cl_parser = argparse.ArgumentParser()
+    cl_parser = argparse.ArgumentParser(prog=f"bp-download {dataset}")
     commandline.add_default(cl_parser, dataset)
     commandline.add_split(cl_parser)
     known_args, pipeline_args = cl_parser.parse_known_args(remaining_args)

@@ -71,3 +71,36 @@ def test_ikala_ignores_the_validation_percent_it_does_not_use() -> None:
 
 def test_datasets_without_a_random_split_ignore_the_split_options() -> None:
     run_download(["maestro", "--train-percent", "5"]).assert_called_once()
+
+
+def test_dataset_help_lists_the_options_of_the_dataset_script(capsys: pytest.CaptureFixture[str]) -> None:
+    dataset_main = mock.MagicMock()
+    datasets = {name: dataset_main for name in download.DATASET_DICT}
+    with mock.patch.object(sys, "argv", ["bp-download", "guitarset", "--help"]), mock.patch.object(
+        download, "DATASET_DICT", datasets
+    ):
+        with pytest.raises(SystemExit) as exit_info:
+            download.main()
+    assert exit_info.value.code == 0
+    output = capsys.readouterr().out
+    for option in ("--source", "--destination", "--train-percent", "--validation-percent", "--split-seed"):
+        assert option in output
+    dataset_main.assert_not_called()
+
+
+def test_help_without_a_dataset_lists_the_datasets(capsys: pytest.CaptureFixture[str]) -> None:
+    with mock.patch.object(sys, "argv", ["bp-download", "--help"]):
+        with pytest.raises(SystemExit) as exit_info:
+            download.main()
+    assert exit_info.value.code == 0
+    output = capsys.readouterr().out
+    for dataset in download.DATASET_DICT:
+        assert dataset in output
+
+
+def test_missing_dataset_exits_with_a_usage_error(capsys: pytest.CaptureFixture[str]) -> None:
+    with mock.patch.object(sys, "argv", ["bp-download"]):
+        with pytest.raises(SystemExit) as exit_info:
+            download.main()
+    assert exit_info.value.code == 2
+    assert "dataset" in capsys.readouterr().err
