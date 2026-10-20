@@ -537,9 +537,15 @@ class CQT2010v2(tf.keras.layers.Layer):
         trainable: bool = False,
         output_format: str = DEFAULT_CQT_OUTPUT_FORMAT,
         match_torch_exactly: bool = True,
+        **kwargs: Any,
     ):
-        super().__init__()
+        super().__init__(**kwargs)
 
+        # build() replaces the sample rate, the hop length and earlydownsample by the values after downsampling,
+        # so the arguments are kept for get_config
+        self._init_sample_rate: Union[float, int] = sr
+        self._init_hop_length = hop_length
+        self._init_earlydownsample = earlydownsample
         self.sample_rate: Union[float, int] = sr
         self.hop_length = hop_length
         self.fmin = fmin
@@ -561,8 +567,8 @@ class CQT2010v2(tf.keras.layers.Layer):
         config = super().get_config().copy()
         config.update(
             {
-                "sample_rate": self.sample_rate,
-                "hop_length": self.hop_length,
+                "sr": self._init_sample_rate,
+                "hop_length": self._init_hop_length,
                 "fmin": self.fmin,
                 "fmax": self.fmax,
                 "n_bins": self.n_bins,
@@ -573,7 +579,7 @@ class CQT2010v2(tf.keras.layers.Layer):
                 "window": self.window,
                 "pad_mode": self.pad_mode,
                 "output_format": self.output_format,
-                "earlydownsample": self.earlydownsample,
+                "earlydownsample": self._init_earlydownsample,
                 "trainable": self.trainable,
                 "match_torch_exactly": self.match_torch_exactly,
             }

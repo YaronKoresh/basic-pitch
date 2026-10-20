@@ -96,6 +96,20 @@ class TestCQT2010v2PadMode:
             layer.build(input_shape=(None, 22050))
 
 
+class TestCQT2010v2Config:
+    @pytest.mark.parametrize("built", [False, True])
+    def test_can_be_rebuilt_from_its_config_before_and_after_build(self, built: bool) -> None:
+        layer = CQT2010v2(sr=22050, hop_length=256, fmin=32.7, n_bins=36, bins_per_octave=36, name="cqt_layer")
+        audio = tf.random.normal((1, 44100))
+        expected = layer(audio) if built else None
+        rebuilt = CQT2010v2.from_config(layer.get_config())
+        assert rebuilt.name == "cqt_layer"
+        assert rebuilt.get_config() == layer.get_config()
+        output = rebuilt(audio)
+        if expected is not None:
+            np.testing.assert_allclose(output.numpy(), expected.numpy(), rtol=1e-5, atol=1e-6)
+
+
 class TestCQT2010v2ShortInput:
     def test_input_shorter_than_the_kernel_is_padded_with_zeros_and_warns(self) -> None:
         layer = CQT2010v2(sr=22050, hop_length=256, fmin=32.7, n_bins=36, bins_per_octave=36)
