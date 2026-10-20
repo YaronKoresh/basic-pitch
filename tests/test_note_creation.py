@@ -107,7 +107,7 @@ def test_constrain_frequency_max_below_lowest_key_removes_notes(max_freq: float)
 
 def test_constrain_frequency_keeps_bin_nearest_to_max_freq() -> None:
     onsets, frames = _single_note_activations()
-    max_freq = librosa.midi_to_hz(40 + 21)
+    max_freq = float(librosa.midi_to_hz(40 + 21))
     onsets, frames = constrain_frequency(onsets, frames, max_freq, None)
     assert frames[:, 40].sum() > 0
 
