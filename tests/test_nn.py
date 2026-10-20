@@ -186,7 +186,7 @@ class TestLossFunctions(unittest.TestCase):
             with tf.GradientTape() as tape:
                 tape.watch(y_pred)
                 loss = models.weighted_transcription_loss(tf.constant(y_true), y_pred, 0.2, 0.5)
-            self.assertTrue(np.isfinite(loss.numpy()))
+            self.assertTrue(np.all(np.isfinite(loss.numpy())))
             self.assertTrue(np.all(np.isfinite(tape.gradient(loss, y_pred).numpy())))
 
     def test_weighted_loss_with_both_kinds_of_label_is_the_weighted_mean_of_each_kind(self) -> None:
@@ -194,7 +194,29 @@ class TestLossFunctions(unittest.TestCase):
         y_pred = tf.constant([[0.9, 0.2, 0.4, 0.6]])
         expected = 0.25 * np.mean(-np.log(1 - np.array([0.2, 0.4]))) + 0.75 * np.mean(-np.log(np.array([0.9, 0.6])))
         loss = models.weighted_transcription_loss(y_true, y_pred, 0.0, 0.75)
-        self.assertAlmostEqual(float(loss), float(expected), places=5)
+        self.assertAlmostEqual(float(loss[0]), float(expected), places=5)
+
+    def test_weighted_loss_gives_one_value_for_each_example(self) -> None:
+        rng = np.random.default_rng(1)
+        y_true = tf.constant((rng.random((3, 5, 8)) > 0.7).astype(np.float32))
+        y_pred = tf.constant(rng.uniform(0.05, 0.95, (3, 5, 8)).astype(np.float32))
+        loss = models.weighted_transcription_loss(y_true, y_pred, 0.1, 0.6)
+        self.assertEqual(loss.shape, (3,))
+        for i in range(3):
+            single = models.weighted_transcription_loss(y_true[i : i + 1], y_pred[i : i + 1], 0.1, 0.6)
+            self.assertAlmostEqual(float(loss[i]), float(single[0]), places=5)
+
+    def test_model_trains_with_the_weighted_loss_and_sample_weights_on_a_batch(self) -> None:
+        inputs = tf.keras.Input(shape=(3,))
+        outputs = {"onset": tf.keras.layers.Reshape((5, 8))(tf.keras.layers.Dense(40, activation="sigmoid")(inputs))}
+        model = tf.keras.Model(inputs, outputs)
+        model.compile(loss={"onset": models.onset_loss(True, 0.1, 0.7)}, optimizer="adam")
+        rng = np.random.default_rng(2)
+        x = rng.random((4, 3)).astype(np.float32)
+        y = {"onset": (rng.random((4, 5, 8)) > 0.7).astype(np.float32)}
+        weights = {"onset": np.array([1.0, 0.0, 1.0, 1.0], np.float32)}
+        history = model.fit(x, y, sample_weight=weights, batch_size=4, epochs=1, verbose=0)
+        self.assertTrue(np.isfinite(history.history["loss"][0]))
 
     def test_loss_has_all_keys(self) -> None:
         result = models.loss()

@@ -74,6 +74,8 @@ def weighted_transcription_loss(
 ) -> tf.Tensor:
     """The transcription loss where the positive and negative true labels are balanced by a weighting factor.
 
+    The loss is calculated per example (the first axis), so that keras can apply a sample weight to each example.
+
     Args:
         y_true: The true labels.
         y_pred: The predicted labels.
@@ -81,24 +83,19 @@ def weighted_transcription_loss(
         positive_weight: Weighting factor for the positive labels.
 
     Returns:
-        The weighted transcription loss.
+        The weighted transcription loss, one value for each example.
     """
-    negative_mask = tf.equal(y_true, 0)
-    nonnegative_mask = tf.logical_not(negative_mask)
-    bce_negative = tf.keras.losses.binary_crossentropy(
-        tf.boolean_mask(y_true, negative_mask),
-        tf.boolean_mask(y_pred, negative_mask),
-        label_smoothing=label_smoothing,
-    )
-    bce_nonnegative = tf.keras.losses.binary_crossentropy(
-        tf.boolean_mask(y_true, nonnegative_mask),
-        tf.boolean_mask(y_pred, nonnegative_mask),
-        label_smoothing=label_smoothing,
-    )
-    # a group without any label has no loss, instead of the NaN that the mean of nothing is
-    bce_negative = tf.where(tf.reduce_any(negative_mask), bce_negative, tf.zeros_like(bce_negative))
-    bce_nonnegative = tf.where(tf.reduce_any(nonnegative_mask), bce_nonnegative, tf.zeros_like(bce_nonnegative))
-    return ((1 - positive_weight) * bce_negative) + (positive_weight * bce_nonnegative)
+    smoothed_true = y_true * (1 - label_smoothing) + 0.5 * label_smoothing
+    bce = tf.keras.backend.binary_crossentropy(smoothed_true, y_pred)
+    negative = tf.cast(tf.equal(y_true, 0), bce.dtype)
+    nonnegative = 1 - negative
+    axes = list(range(1, len(bce.shape)))
+
+    def mean_of_group(group: tf.Tensor) -> tf.Tensor:
+        # a group without any label has no loss, instead of the NaN that the mean of nothing is
+        return tf.math.divide_no_nan(tf.reduce_sum(bce * group, axis=axes), tf.reduce_sum(group, axis=axes))
+
+    return ((1 - positive_weight) * mean_of_group(negative)) + (positive_weight * mean_of_group(nonnegative))
 
 
 def onset_loss(
