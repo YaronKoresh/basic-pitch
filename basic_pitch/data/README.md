@@ -8,4 +8,9 @@ The code and scripts in this section deal with training basic pitch on your own.
 * **--sdk_container_image**: The Docker container image used to process the data if using `PortableRunner`.
 * **--job_endpoint**: the endpoint where the job is running. It defaults to `embed` which works for `PortableRunner`. 
 
+The scripts of the datasets that split their tracks themselves (`guitarset`, `ikala` and `medleydb_pitch`) also have these arguments:
+* **--train-percent**: Fraction of the tracks to mark as train. It defaults to `0.8`.
+* **--validation-percent**: Fraction of the tracks to mark as validation. It defaults to `0.1`, and only `guitarset` uses it, where the remaining tracks are the test split. The train and validation fractions must add up to less than 1. `ikala` and `medleydb_pitch` mark all tracks that are not train as validation.
+* **--split-seed**: Seed of the random number generator used for the split, to get the same split again. It defaults to a random seed.
+
 Additional arguments that work with Beam in general can be used as well, and will be passed along and used by the pipeline. If using `DataflowRunner`, you will be required to pass `--temp_location={Path to GCS Bucket}`, `--staging_location={Path to GCS Bucket}`, `--project={Name of GCS Project}` and `--region={GCS region}`. 

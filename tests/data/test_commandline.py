@@ -16,10 +16,11 @@
 # limitations under the License.
 
 import argparse
+import pathlib
 
 import pytest
 
-from basic_pitch.data.commandline import add_default, verify_split_percents
+from basic_pitch.data.commandline import add_default, add_split, verify_split_percents
 
 
 @pytest.mark.parametrize("train, validation", [(0.8, 0.1), (0.5, 0.0), (0.33, 0.33), (0.99, 0.0)])
@@ -63,3 +64,15 @@ def test_batch_size_option_rejects_values_below_one_and_non_integers(
     with pytest.raises(SystemExit):
         parser.parse_args(["--batch-size", value])
     assert "must be a whole number of at least 1" in capsys.readouterr().err
+
+
+def test_data_readme_documents_every_option_of_the_download_scripts() -> None:
+    parser = argparse.ArgumentParser()
+    add_default(parser, "dataset")
+    add_split(parser)
+    options = {option for action in parser._actions for option in action.option_strings if option.startswith("--")}
+    readme = (pathlib.Path(__file__).parent.parent.parent / "basic_pitch" / "data" / "README.md").read_text(
+        encoding="utf-8"
+    )
+    for option in sorted(options - {"--help"}):
+        assert f"**{option}**" in readme, f"{option} is not documented in basic_pitch/data/README.md"
