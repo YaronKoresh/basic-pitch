@@ -559,7 +559,7 @@ def get_sample_weights(
 ) -> Tuple[tf.Tensor, np.ndarray, np.ndarray, np.ndarray, tf.cond, tf.cond, tf.cond, Dict[Any, Any]]:
     """Add sample weights based on whether or not the target is empty
     If it's empty, the weight is 0, otherwise it's 1. Empty targets get filled
-    with matricies of 0's
+    with matrices of 0's
     Args:
         audio : audio signal (full length)
         notes : matrix of note frames (n_frames x N_FREQ_BINS_NOTES)

@@ -454,7 +454,7 @@ class CQT2010v2(tf.keras.layers.Layer):
     Instead of convoluting the STFT results with a gigantic CQT kernel covering the full frequency
     spectrum, we make a small CQT kernel covering only the top octave. Then we keep downsampling the
     input audio by a factor of 2 to convoluting it with the small CQT kernel.
-    Everytime the input audio is downsampled, the CQT relative to the downsampled input is equivalent
+    Every time the input audio is downsampled, the CQT relative to the downsampled input is equivalent
     to the next lower octave.
     The kernel creation process is still same as the 1992 algorithm. Therefore, we can reuse the
     code from the 1992 algorithm [2]
@@ -474,7 +474,7 @@ class CQT2010v2(tf.keras.layers.Layer):
     fmin : float
         The frequency for the lowest CQT bin. Default is 32.70Hz, which corresponds to the note C0.
     fmax : float
-        The frequency for the highest CQT bin. Default is ``None``, therefore the higest CQT bin is
+        The frequency for the highest CQT bin. Default is ``None``, therefore the highest CQT bin is
         inferred from the ``n_bins`` and ``bins_per_octave``.  If ``fmax`` is not ``None``, then the
         argument ``n_bins`` will be ignored and ``n_bins`` will be calculated automatically.
         Default is ``None``
@@ -605,7 +605,7 @@ class CQT2010v2(tf.keras.layers.Layer):
             # Calculate the top bin frequency
             fmax_t = self.fmin_t * 2 ** ((remainder - 1) / self.bins_per_octave)
 
-        self.fmin_t = fmax_t / 2 ** (1 - 1 / self.bins_per_octave)  # Adjusting the top minium bins
+        self.fmin_t = fmax_t / 2 ** (1 - 1 / self.bins_per_octave)  # Adjusting the top minimum bins
         if fmax_t > self.sample_rate / 2:
             raise ValueError(
                 "The top bin {}Hz has exceeded the Nyquist frequency, please reduce the n_bins".format(fmax_t)

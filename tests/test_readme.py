@@ -53,3 +53,11 @@ def test_contributing_names_the_line_length_that_tox_uses_for_black() -> None:
     contributing = (root / "CONTRIBUTING.md").read_text(encoding="utf-8")
     assert f"--line-length {line_length}" in contributing
     assert "black` with defaults" not in contributing
+
+
+def test_source_comments_and_docstrings_do_not_contain_known_misspellings() -> None:
+    misspellings = ["Everytime", "higest", "minium", "matricies"]
+    for path in (README_PATH.parent / "basic_pitch").rglob("*.py"):
+        text = path.read_text(encoding="utf-8")
+        for word in misspellings:
+            assert word not in text, f"{path} contains the misspelling {word}"
