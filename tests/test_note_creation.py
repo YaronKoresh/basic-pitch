@@ -665,3 +665,14 @@ def test_sonify_midi_writes_a_wav_with_the_requested_sample_rate(tmp_path: pathl
     sample_rate, audio = wavfile.read(save_path)
     assert sample_rate == 22050
     assert len(audio) > 0
+
+
+@pytest.mark.parametrize("pitch", [-1, 128, 200, 60.5, "60", None, True])
+def test_note_events_to_midi_rejects_a_pitch_that_a_midi_file_cannot_store(pitch: Any) -> None:
+    with pytest.raises(ValueError, match="pitch of a note"):
+        note_events_to_midi([(0.0, 0.5, 60, 0.8, None), (0.5, 1.0, pitch, 0.8, None)])
+
+
+@pytest.mark.parametrize("pitch", [0, 21, 60, 127, np.int64(60)])
+def test_note_events_to_midi_writes_a_file_for_pitches_in_the_midi_range(pitch: Any, tmp_path: pathlib.Path) -> None:
+    note_events_to_midi([(0.0, 0.5, pitch, 0.8, None)]).write(str(tmp_path / "notes.mid"))

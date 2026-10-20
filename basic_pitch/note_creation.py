@@ -49,6 +49,8 @@ DEFAULT_MIN_NOTE_LEN = 11
 ENERGY_TOLERANCE = 11
 MAGIC_ALIGNMENT_OFFSET = 0.0018
 MIDI_VELOCITY_SCALE = 127
+MIDI_MIN_PITCH = 0
+MIDI_MAX_PITCH = 127
 MIDI_MIN_NOTE_VELOCITY = 1  # a note-on with velocity 0 is a note-off, so the note would vanish from the file
 PITCH_BEND_SCALE = 4096
 MICROSECONDS_PER_MINUTE = 60_000_000
@@ -340,6 +342,16 @@ def note_events_to_midi(
         pretty_midi.PrettyMIDI() object
 
     """
+    for _, _, note_number, *_ in note_events_with_pitch_bends:
+        if (
+            isinstance(note_number, bool)
+            or not isinstance(note_number, (int, np.integer))
+            or not MIDI_MIN_PITCH <= note_number <= MIDI_MAX_PITCH
+        ):
+            raise ValueError(
+                f"The pitch of a note must be a whole number between {MIDI_MIN_PITCH} and {MIDI_MAX_PITCH}, "
+                f"got {note_number}."
+            )
     mid = pretty_midi.PrettyMIDI(initial_tempo=midi_tempo)
     last_tick = max((end_time for _, end_time, *_ in note_events_with_pitch_bends), default=0) * (
         midi_tempo * mid.resolution / 60
