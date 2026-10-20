@@ -473,8 +473,6 @@ def build_output_path(
 
     output_path = output_directory / f"{basename}_basic_pitch.{output_type.value}"
 
-    generating_file_message(output_type.name)
-
     if output_path.exists():
         raise IOError(
             f"  🚨 {str(output_path)} already exists and would be overwritten. Skipping output files for {audio_path}."
@@ -713,6 +711,7 @@ def predict_and_save(
 
         if model_output_path is not None:
             try:
+                generating_file_message(OutputExtensions.MODEL_OUTPUT_NPZ.name)
                 np.savez(model_output_path, basic_pitch_model_output=cast(Any, model_output))
                 file_saved_confirmation(OutputExtensions.MODEL_OUTPUT_NPZ.name, model_output_path)
             except Exception as e:
@@ -721,6 +720,7 @@ def predict_and_save(
 
         if midi_path is not None:
             try:
+                generating_file_message(OutputExtensions.MIDI.name)
                 midi_data.write(str(midi_path))
                 file_saved_confirmation(OutputExtensions.MIDI.name, midi_path)
             except Exception as e:
@@ -729,6 +729,7 @@ def predict_and_save(
 
         if midi_sonify_path is not None:
             try:
+                generating_file_message(OutputExtensions.MIDI_SONIFICATION.name)
                 infer.sonify_midi(midi_data, midi_sonify_path, sr=sonification_samplerate)
                 file_saved_confirmation(OutputExtensions.MIDI_SONIFICATION.name, midi_sonify_path)
             except Exception as e:
@@ -737,6 +738,7 @@ def predict_and_save(
 
         if note_events_path is not None:
             try:
+                generating_file_message(OutputExtensions.NOTE_EVENTS.name)
                 save_note_events(note_events, note_events_path)
                 file_saved_confirmation(OutputExtensions.NOTE_EVENTS.name, note_events_path)
             except Exception as e:

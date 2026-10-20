@@ -21,7 +21,7 @@ import json
 import os
 import pathlib
 import tempfile
-from typing import Any, Dict, List, cast
+from typing import Any, Dict, List, Tuple, cast
 from unittest import mock
 
 import librosa
@@ -576,3 +576,51 @@ def test_predict_and_save_rejects_a_debug_file_for_several_audio_files_before_pr
             debug_file=tmp_path / "debug.json",
         )
     assert list(tmp_path.iterdir()) == []
+
+
+def _mock_prediction() -> Tuple[Dict[str, Any], pretty_midi.PrettyMIDI, List[Any]]:
+    return {}, pretty_midi.PrettyMIDI(), []
+
+
+def test_predict_and_save_announces_only_the_files_it_creates(
+    capsys: pytest.CaptureFixture[str], tmp_path: pathlib.Path
+) -> None:
+    audio = tmp_path / "song.wav"
+    audio.write_bytes(b"audio")
+    with mock.patch.object(inference, "predict", return_value=_mock_prediction()):
+        inference.predict_and_save(
+            [audio], tmp_path, True, False, True, True, model_or_model_path=mock.MagicMock(spec=inference.Model)
+        )
+    output = capsys.readouterr().out
+    for kind in ("model output npz", "midi", "note events"):
+        assert output.count(f"Creating {kind}...") == 1
+    assert "Creating midi sonification..." not in output
+    assert output.index("Creating midi...") < output.index("Saved to " + str(tmp_path / "song_basic_pitch.mid"))
+
+
+def test_predict_and_save_does_not_announce_files_of_an_unreadable_audio(
+    capsys: pytest.CaptureFixture[str], tmp_path: pathlib.Path
+) -> None:
+    bad = tmp_path / "bad.wav"
+    bad.write_bytes(b"not audio")
+    with mock.patch.object(inference, "predict", side_effect=EOFError()):
+        with pytest.raises(IOError):
+            inference.predict_and_save(
+                [bad], tmp_path, True, False, True, True, model_or_model_path=mock.MagicMock(spec=inference.Model)
+            )
+    assert "Creating" not in capsys.readouterr().out
+
+
+def test_predict_and_save_does_not_announce_files_of_an_audio_that_is_skipped_for_an_existing_output(
+    capsys: pytest.CaptureFixture[str], tmp_path: pathlib.Path
+) -> None:
+    audio = tmp_path / "song.wav"
+    audio.write_bytes(b"audio")
+    (tmp_path / "song_basic_pitch.mid").write_bytes(b"keep")
+    with mock.patch.object(inference, "predict", return_value=_mock_prediction()):
+        inference.predict_and_save(
+            [audio], tmp_path, True, False, True, True, model_or_model_path=mock.MagicMock(spec=inference.Model)
+        )
+    output = capsys.readouterr().out
+    assert "Skipping output files" in output
+    assert "Creating" not in output
