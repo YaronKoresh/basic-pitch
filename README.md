@@ -105,6 +105,17 @@ To discover more parameter control, run:
 basic-pitch --help
 ```
 
+##### Reading the model output
+
+The NPZ file of `--save-model-outputs` (and of `<save-model-outputs>` in `predict_and_save()`) holds one entry, `basic_pitch_model_output`, a dictionary of the `note`, `onset` and `contour` arrays. NumPy stores a dictionary as a pickled object, so `np.load` raises `Object arrays cannot be loaded when allow_pickle=False` unless it is called with `allow_pickle=True`. Pickled data can run code when it is loaded, so load only files that you created yourself:
+
+```python
+import numpy as np
+
+model_output = np.load(<npz-path>, allow_pickle=True)["basic_pitch_model_output"].item()
+# model_output["note"], model_output["onset"] and model_output["contour"] are arrays of shape (n_times, n_freqs)
+```
+
 #### Programmatic
 
 **predict()**

@@ -17,7 +17,10 @@
 
 import pathlib
 import re
-from typing import List
+from typing import Any, Dict, List
+
+import numpy as np
+import pytest
 
 README_PATH = pathlib.Path(__file__).parent.parent / "README.md"
 
@@ -67,3 +70,17 @@ def test_readme_describes_the_audio_input_of_predict_and_save_as_files_not_direc
     readme = README_PATH.read_text(encoding="utf-8")
     assert "`<input-audio-path-list>` & `<output-directory>`" not in readme
     assert "paths of the audio files" in readme
+
+
+def test_readme_shows_how_to_load_the_saved_model_output(tmp_path: pathlib.Path) -> None:
+    example = next(block for block in readme_python_examples() if "basic_pitch_model_output" in block)
+    npz_path = tmp_path / "model_output.npz"
+    model_output = {"note": np.zeros((4, 88)), "onset": np.zeros((4, 88)), "contour": np.zeros((4, 264))}
+    np.savez(npz_path, basic_pitch_model_output=model_output)  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="allow_pickle"):
+        np.load(npz_path)["basic_pitch_model_output"]
+
+    namespace: Dict[str, Any] = {}
+    exec(example.replace("placeholder", repr(str(npz_path))), namespace)
+
+    assert set(namespace["model_output"]) == {"note", "onset", "contour"}
