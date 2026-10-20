@@ -26,7 +26,6 @@ from basic_pitch.data.datasets.medleydb_pitch import (
     create_input_data,
 )
 
-
 # TODO: Create test_medleydb_pitch_to_tf_example
 
 
