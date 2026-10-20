@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import apache_beam as beam
+import argparse
 import itertools
 import pytest
 import os
@@ -22,7 +23,10 @@ import pathlib
 import shutil
 from apache_beam.testing.test_pipeline import TestPipeline
 from typing import List
+from unittest import mock
 
+from basic_pitch.data import commandline
+from basic_pitch.data.datasets import guitarset
 from basic_pitch.data.datasets.guitarset import (
     GuitarSetToTfExample,
     GuitarSetInvalidTracks,
@@ -102,3 +106,34 @@ def test_guitarset_create_input_data(mock_guitarset_index: None) -> None:
 def test_guitarset_create_input_data_overallocate() -> None:
     with pytest.raises(ValueError, match="over allocate"):
         create_input_data(train_percent=0.6, validation_percent=0.6)
+
+
+def test_guitarset_main_writes_the_splits(tmp_path: pathlib.Path, mock_guitarset_index: None) -> None:
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    (source / "audio_mono-mic").mkdir(parents=True)
+    (source / "annotation").mkdir()
+    track_ids = [TRACK_ID, "00_BN1-147-Gb_comp"]
+    for track_id in track_ids:
+        create_mock_wav(source / "audio_mono-mic" / f"{track_id}_mic.wav", duration_min=1)
+        shutil.copy(
+            RESOURCES_PATH / "data" / "guitarset" / "annotation" / f"{track_id}.jams",
+            source / "annotation" / f"{track_id}.jams",
+        )
+
+    parser = argparse.ArgumentParser()
+    commandline.add_default(parser, "guitarset")
+    commandline.add_split(parser)
+    known_args, pipeline_args = parser.parse_known_args(
+        ["--source", str(source), "--destination", str(destination), "--batch-size", "1"]
+    )
+    # the mock index lists more tracks than the two that have files here
+    with mock.patch.object(guitarset, "create_input_data", return_value=list(zip(track_ids, ["train", "validation"]))):
+        guitarset.main(known_args, pipeline_args)
+
+    splits = destination / "splits"
+    for split in ("train", "validation", "test"):
+        assert (splits / split / "index.csv").is_file()
+    for split in ("train", "validation"):
+        assert len(list((splits / split).glob("*.tfrecord"))) == 1
+    assert not list((splits / "test").glob("*.tfrecord"))
