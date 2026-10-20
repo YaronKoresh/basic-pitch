@@ -226,6 +226,13 @@ class TestModelOptionValidation(unittest.TestCase):
                     inputs = tf.keras.Input(shape=(AUDIO_N_SAMPLES, 1))
                     models.get_cqt(inputs, n_harmonics, False)  # type: ignore
 
+    def test_invalid_filter_counts_raise_value_error(self) -> None:
+        for name in ("n_filters_contour", "n_filters_onsets", "n_filters_notes"):
+            for count in (0, -4, 2.5, True, float("nan")):
+                with self.subTest(name=name, count=count):
+                    with self.assertRaisesRegex(ValueError, f"{name} must be a whole number of at least 1"):
+                        models.model(**{name: count})  # type: ignore
+
     def test_invalid_loss_options_raise_value_error(self) -> None:
         for factory in (models.loss, models.loss_no_contour):
             for options in (

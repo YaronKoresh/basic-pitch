@@ -197,6 +197,13 @@ def verify_n_harmonics(n_harmonics: int) -> None:
         raise ValueError(f"n_harmonics must be a whole number of at least 1, got {n_harmonics}.")
 
 
+def verify_n_filters(**n_filters: int) -> None:
+    """Raise a ValueError if a number of filters is not a whole number of at least 1."""
+    for name, value in n_filters.items():
+        if isinstance(value, bool) or not isinstance(value, (int, np.integer)) or value < 1:
+            raise ValueError(f"{name} must be a whole number of at least 1, got {value}.")
+
+
 def get_cqt(inputs: tf.Tensor, n_harmonics: int, use_batchnorm: bool) -> tf.Tensor:
     """Calculate the CQT of the input audio.
 
@@ -245,12 +252,16 @@ def model(
 
     Args:
         n_harmonics: The number of harmonics to use in the harmonic stacking layer.
-        n_filters_contour: Number of filters for the contour convolutional layer.
+        n_filters_contour: Number of filters for the first contour convolutional layer. That layer is not part of
+            the model (see the comment below), so the value has no effect.
         n_filters_onsets: Number of filters for the onsets convolutional layer.
         n_filters_notes: Number of filters for the notes convolutional layer.
         no_contours: Whether or not to include contours in the output.
     """
     verify_n_harmonics(n_harmonics)
+    verify_n_filters(
+        n_filters_contour=n_filters_contour, n_filters_onsets=n_filters_onsets, n_filters_notes=n_filters_notes
+    )
     # input representation
     inputs = tf.keras.Input(shape=(AUDIO_N_SAMPLES, 1))  # (batch, time, ch)
     x = get_cqt(inputs, n_harmonics, True)
