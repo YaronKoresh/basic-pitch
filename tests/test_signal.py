@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 import numpy as np
 import pytest
@@ -65,7 +65,7 @@ def test_stft_rejects_lengths_it_cannot_use(arguments: Dict[str, Any]) -> None:
 
 
 def test_stft_accepts_numpy_integer_lengths() -> None:
-    layer = Stft(fft_length=np.int64(256), window_length=np.int32(128), hop_length=np.int64(64))
+    layer = Stft(**cast(Any, {"fft_length": np.int64(256), "window_length": np.int32(128), "hop_length": np.int64(64)}))
     assert layer(tf.zeros((1, 2048))).shape == (1, 33, 129)
 
 

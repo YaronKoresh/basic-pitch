@@ -17,7 +17,7 @@
 
 import pathlib
 import warnings
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import librosa
 import mido
@@ -641,7 +641,9 @@ def test_verify_note_options_rejects_values_that_are_not_numbers_with_a_value_er
 
 
 def test_verify_note_options_accepts_numpy_numbers() -> None:
-    verify_note_options(np.float32(0.5), np.float64(0.3), np.int64(116), np.float32(100), np.int32(1000), np.int64(120))
+    verify_note_options(
+        *cast(Any, (np.float32(0.5), np.float64(0.3), np.int64(116), np.float32(100), np.int32(1000), np.int64(120)))
+    )
 
 
 @pytest.mark.parametrize("samplerate", [None, 0, -5, 1.5, "44100", True])

@@ -15,10 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Iterator, List, Tuple
+from typing import Any, Iterator, List, Tuple, cast
 import unittest
 
 import numpy as np
+import numpy.typing as npt
 import tensorflow as tf
 
 from basic_pitch import models, nn
@@ -35,7 +36,7 @@ tfkl = tf.keras.layers
 
 
 class TestHarmonicStacking(unittest.TestCase):
-    def _audio_data_gen(self) -> Iterator[Tuple[np.array, np.array]]:
+    def _audio_data_gen(self) -> Iterator[Tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]]:
         while True:
             audio = np.random.uniform(size=(BATCH_SIZE, AUDIO_N_SAMPLES, 1)).astype(np.float32)
             output = np.random.uniform(size=(BATCH_SIZE, ANNOT_N_FRAMES, ANNOTATIONS_N_SEMITONES * 3, 1)).astype(
@@ -173,7 +174,7 @@ class TestHarmonicStackingEdgeCases(unittest.TestCase):
                     nn.HarmonicStacking(bins_per_semitone, harmonics, n_output_freqs)
 
     def test_numpy_integers_are_accepted_as_stacking_sizes(self) -> None:
-        layer = nn.HarmonicStacking(np.int64(3), [0.5, 1, np.float32(2)], np.int32(10))
+        layer = nn.HarmonicStacking(*cast(Any, (np.int64(3), [0.5, 1, np.float32(2)], np.int32(10))))
         self.assertEqual(layer.n_output_freqs, 10)
 
 

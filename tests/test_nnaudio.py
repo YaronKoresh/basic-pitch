@@ -17,7 +17,7 @@
 
 import warnings
 
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, cast
 
 import numpy as np
 import pytest
@@ -122,7 +122,9 @@ class TestCQT2010v2Options:
             CQT2010v2(**options)
 
     def test_numpy_numbers_and_no_fmax_are_accepted(self) -> None:
-        layer = CQT2010v2(sr=np.float32(22050), hop_length=np.int64(256), n_bins=np.int32(36), fmax=None)
+        layer = CQT2010v2(
+            **cast(Any, {"sr": np.float32(22050), "hop_length": np.int64(256), "n_bins": np.int32(36), "fmax": None})
+        )
         assert layer.n_bins == 36
 
 

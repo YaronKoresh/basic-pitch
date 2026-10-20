@@ -713,7 +713,7 @@ def predict_and_save(
 
         if model_output_path is not None:
             try:
-                np.savez(model_output_path, basic_pitch_model_output=model_output)
+                np.savez(model_output_path, basic_pitch_model_output=cast(Any, model_output))
                 file_saved_confirmation(OutputExtensions.MODEL_OUTPUT_NPZ.name, model_output_path)
             except Exception as e:
                 failed_to_save(OutputExtensions.MODEL_OUTPUT_NPZ.name, model_output_path)

@@ -21,7 +21,7 @@ import json
 import os
 import pathlib
 import tempfile
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 from unittest import mock
 
 import librosa
@@ -80,7 +80,7 @@ def test_predict() -> None:
     expected_note_events = sorted(expected_note_events, key=lambda e: (e[0], e[2], e[1]))
     for expected, calculated in zip(expected_note_events, note_events):
         for i in range(len(expected)):
-            np.testing.assert_allclose(expected[i], calculated[i], atol=1e-4, rtol=0)
+            np.testing.assert_allclose(expected[i], cast(Any, calculated[i]), atol=1e-4, rtol=0)
 
 
 def test_predict_with_saves() -> None:
@@ -313,8 +313,8 @@ def test_get_audio_input() -> None:
     ):
         audio_windowed.append(audio_window)
         window_times.append(window_time)
-    audio_windowed = np.array(audio_windowed)
-    assert len(audio_windowed) == 6
+    audio_windowed_array = np.array(audio_windowed)
+    assert len(audio_windowed_array) == 6
     assert len(window_times) == 6
     for time in window_times:
         assert time["start"] <= time["end"]
@@ -532,11 +532,11 @@ def test_verify_output_dir_valid(tmp_path: pathlib.Path) -> None:
 
 def test_unwrap_output_bad_shape() -> None:
     with pytest.raises(ValueError, match="three-dimensional"):
-        inference.unwrap_output(np.ones((100, 88)), 44100, 30, 7424)
+        inference.unwrap_output(np.ones((100, 88), dtype=np.float32), 44100, 30, 7424)
 
 
 def test_unwrap_output_valid_shape() -> None:
-    result = inference.unwrap_output(np.ones((2, 172, 88)), 44100, 30, 7424)
+    result = inference.unwrap_output(np.ones((2, 172, 88), dtype=np.float32), 44100, 30, 7424)
     assert result is not None
     assert len(result.shape) == 2
 

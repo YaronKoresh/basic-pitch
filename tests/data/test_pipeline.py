@@ -19,6 +19,7 @@ import csv
 import os
 
 from itertools import islice
+from typing import Any, cast
 
 import apache_beam as beam
 import numpy as np
@@ -41,7 +42,7 @@ def test_batch() -> None:
 
     element = np.random.random([element_size])
     batcher = Batch(batch_size)
-    batches = list(batcher.process(element))
+    batches = list(batcher.process(cast(Any, element)))
     for batch in batches[:-1]:
         assert len(batch) == element_size // batch_size
 
