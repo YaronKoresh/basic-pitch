@@ -43,6 +43,7 @@ from basic_pitch.note_creation import (
     sonify_midi,
     sonify_salience,
     suppress_harmonic_notes,
+    verify_model_output,
     verify_note_options,
 )
 
@@ -690,3 +691,30 @@ def test_sonify_salience_rejects_a_semitone_resolution_that_is_not_a_whole_numbe
 def test_sonify_salience_rejects_a_gram_that_does_not_match_the_semitone_resolution(shape: Tuple[int, ...]) -> None:
     with pytest.raises(ValueError, match="gram must have 264 rows"):
         sonify_salience(np.zeros(shape), 3)
+
+
+def _model_output(n_times: int = 10) -> Dict[str, Any]:
+    return {"note": np.zeros((n_times, 88)), "onset": np.zeros((n_times, 88)), "contour": np.zeros((n_times, 264))}
+
+
+def test_verify_model_output_accepts_a_matching_output_and_an_empty_one() -> None:
+    verify_model_output(_model_output())
+    verify_model_output(_model_output(0))
+
+
+@pytest.mark.parametrize(
+    "change, message",
+    [
+        (lambda output: output.pop("contour"), 'needs the "contour" array'),
+        (lambda output: output.update(note=np.zeros(10)), '"note" must be an array of shape \\(n_times, 88\\)'),
+        (lambda output: output.update(onset=np.zeros((10, 80))), '"onset" must be an array of shape \\(n_times, 88\\)'),
+        (lambda output: output.update(contour=[[0] * 264] * 10), '"contour" must be an array of shape'),
+        (lambda output: output.update(onset=np.zeros((8, 88))), "same number of time steps"),
+        (lambda output: output.update(contour=np.zeros((5, 264))), "same number of time steps"),
+    ],
+)
+def test_model_output_to_notes_rejects_an_output_that_cannot_be_converted(change: Any, message: str) -> None:
+    output = _model_output()
+    change(output)
+    with pytest.raises(ValueError, match=message):
+        model_output_to_notes(output, onset_thresh=0.5, frame_thresh=0.3)

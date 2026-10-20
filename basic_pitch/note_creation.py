@@ -122,6 +122,29 @@ def verify_outputs_requested(save_midi: bool, sonify_midi: bool, save_model_outp
         )
 
 
+def verify_model_output(output: Dict[str, npt.NDArray[Any]]) -> None:
+    """Raise a ValueError if the model output cannot be converted to notes.
+
+    The output needs the arrays "note" and "onset" with one column for each of the piano keys, and "contour" with
+    one column for each contour bin, all with the same number of time steps.
+    """
+    expected_columns = {
+        "note": ANNOTATIONS_N_SEMITONES,
+        "onset": ANNOTATIONS_N_SEMITONES,
+        "contour": N_FREQ_BINS_CONTOURS,
+    }
+    for key, columns in expected_columns.items():
+        if key not in output:
+            raise ValueError(f'The model output needs the "{key}" array, got only {sorted(output)}.')
+        value = output[key]
+        if not isinstance(value, np.ndarray) or value.ndim != 2 or value.shape[1] != columns:
+            shape = getattr(value, "shape", type(value).__name__)
+            raise ValueError(f'The model output "{key}" must be an array of shape (n_times, {columns}), got {shape}.')
+    n_times = {key: output[key].shape[0] for key in expected_columns}
+    if len(set(n_times.values())) != 1:
+        raise ValueError(f"The model output arrays must have the same number of time steps, got {n_times}.")
+
+
 def model_output_to_notes(
     output: Dict[str, npt.NDArray[Any]],
     onset_thresh: float,
@@ -176,6 +199,8 @@ def model_output_to_notes(
         melodia_peak_thresh,
         note_peak_thresh,
     )
+
+    verify_model_output(output)
 
     frames = output["note"]
     onsets = output["onset"]
