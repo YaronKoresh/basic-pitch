@@ -22,6 +22,7 @@ from itertools import islice
 
 import apache_beam as beam
 import numpy as np
+import pytest
 import tensorflow as tf
 
 from apache_beam.testing.test_pipeline import TestPipeline
@@ -84,3 +85,17 @@ def test_transcription_dataset_writer(tmpdir: str) -> None:
             reader = csv.reader(fp, delimiter=",")
             for row in islice(reader, 1, None):
                 assert int(row[0][-1]) % 3 == i
+
+
+@pytest.mark.parametrize("batch_size", [0, -3])
+def test_transcription_dataset_writer_rejects_batch_size_below_one(tmpdir: str, batch_size: int) -> None:
+    with TestPipeline() as p:
+        with pytest.raises(ValueError, match="batch size must be a whole number of at least 1"):
+            transcription_dataset_writer(
+                p=p,
+                input_data=[("track0", "train")],
+                to_tf_example=lambda el: [tf.train.Example()],
+                filter_invalid_tracks=lambda el: [beam.pvalue.TaggedOutput(el[1], el[0])],
+                destination=tmpdir,
+                batch_size=batch_size,
+            )

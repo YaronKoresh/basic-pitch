@@ -23,6 +23,17 @@ from pathlib import Path
 from typing import Optional
 
 
+def positive_int(value: str) -> int:
+    """Parse a command line value that must be a whole number of at least 1."""
+    try:
+        number = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"must be a whole number of at least 1, got {value}.")
+    if number < 1:
+        raise argparse.ArgumentTypeError(f"must be a whole number of at least 1, got {value}.")
+    return number
+
+
 def add_default(parser: argparse.ArgumentParser, dataset_name: str = "") -> None:
     default_source = str(Path.home() / "mir_datasets" / dataset_name)
     default_destination = str(Path.home() / "data" / "basic_pitch" / dataset_name)
@@ -50,7 +61,7 @@ def add_default(parser: argparse.ArgumentParser, dataset_name: str = "") -> None
         action="store_true",
         help="If passed, the dataset will be put into a timestamp directory instead of 'splits'",
     )
-    parser.add_argument("--batch-size", default=5, type=int, help="Number of examples per tfrecord")
+    parser.add_argument("--batch-size", default=5, type=positive_int, help="Number of examples per tfrecord")
     parser.add_argument(
         "--sdk_container_image",
         default="",

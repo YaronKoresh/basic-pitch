@@ -58,6 +58,8 @@ def transcription_dataset_writer(
     destination: str,
     batch_size: int,
 ) -> None:
+    if batch_size < 1:
+        raise ValueError(f"The batch size must be a whole number of at least 1, got {batch_size}.")
     valid_track_ids = (
         p
         | "Create PCollection of track IDS" >> beam.Create(input_data)

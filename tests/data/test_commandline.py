@@ -15,9 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
+
 import pytest
 
-from basic_pitch.data.commandline import verify_split_percents
+from basic_pitch.data.commandline import add_default, verify_split_percents
 
 
 @pytest.mark.parametrize("train, validation", [(0.8, 0.1), (0.5, 0.0), (0.33, 0.33), (0.99, 0.0)])
@@ -43,3 +45,21 @@ def test_verify_split_percents_rejects_values_that_cannot_make_a_split(
 ) -> None:
     with pytest.raises(ValueError, match=message):
         verify_split_percents(train, validation)
+
+
+def test_batch_size_option_defaults_to_five_and_accepts_positive_numbers() -> None:
+    parser = argparse.ArgumentParser()
+    add_default(parser, "x")
+    assert parser.parse_args([]).batch_size == 5
+    assert parser.parse_args(["--batch-size", "12"]).batch_size == 12
+
+
+@pytest.mark.parametrize("value", ["0", "-3", "1.5", "abc", ""])
+def test_batch_size_option_rejects_values_below_one_and_non_integers(
+    value: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    parser = argparse.ArgumentParser()
+    add_default(parser, "x")
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--batch-size", value])
+    assert "must be a whole number of at least 1" in capsys.readouterr().err
