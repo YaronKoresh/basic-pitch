@@ -551,6 +551,7 @@ def predict(
     )
 
     verify_debug_file(debug_file)
+    verify_input_path(audio_path)
 
     with no_tf_warnings():
         print(f"Predicting MIDI for {audio_path}...")

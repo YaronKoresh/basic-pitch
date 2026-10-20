@@ -638,3 +638,13 @@ def test_predict_and_save_does_not_double_the_period_of_a_reason_that_ends_with_
             )
     output = capsys.readouterr().out
     assert f"Could not process {bad}: Format not recognised. Skipping it." in output
+
+
+def test_predict_rejects_a_missing_audio_file_with_a_clear_error(tmp_path: pathlib.Path) -> None:
+    with pytest.raises(ValueError, match="does not exist"):
+        inference.predict(tmp_path / "missing.wav", mock.MagicMock(spec=inference.Model))
+
+
+def test_predict_rejects_a_directory_as_audio_with_a_clear_error(tmp_path: pathlib.Path) -> None:
+    with pytest.raises(ValueError, match="is not a file"):
+        inference.predict(tmp_path, mock.MagicMock(spec=inference.Model))
