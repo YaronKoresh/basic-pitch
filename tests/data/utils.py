@@ -19,7 +19,10 @@ import logging
 import numpy as np
 import pathlib
 import soundfile as sf
+import tensorflow as tf
 import wave
+
+from typing import Dict, List
 
 from mido import MidiFile, MidiTrack, Message
 
@@ -86,3 +89,13 @@ def create_mock_midi(output_fpath: pathlib.Path) -> None:
     mid.save(output_fpath)
 
     logging.info(f"Mock MIDI file '{output_fpath}' created successfully.")
+
+
+def read_tfrecord_features(tfrecord_dir: pathlib.Path) -> List[Dict[str, tf.train.Feature]]:
+    """Return the features of every example written to the single tfrecord in a directory."""
+    tfrecords = list(tfrecord_dir.glob("*.tfrecord"))
+    assert len(tfrecords) == 1
+    return [
+        dict(tf.train.Example.FromString(raw.numpy()).features.feature)
+        for raw in tf.data.TFRecordDataset(str(tfrecords[0]))
+    ]
