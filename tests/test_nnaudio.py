@@ -63,6 +63,11 @@ class TestGetWindowDispatch:
     def test_gaussian_tuple_with_zero_attenuation_is_flat(self) -> None:
         np.testing.assert_allclose(get_window_dispatch(("gaussian", 0), 8), np.ones(8))
 
+    def test_gaussian_tuple_with_zero_attenuation_raises_no_warning(self) -> None:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            get_window_dispatch(("gaussian", 0), 8)
+
     @pytest.mark.parametrize(
         "window",
         [

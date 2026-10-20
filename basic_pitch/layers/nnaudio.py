@@ -161,6 +161,8 @@ def get_window_dispatch(window: Union[str, float, Tuple[str, float]], N: int, ff
                     f"A gaussian window needs the form ('gaussian', attenuation), with a finite attenuation "
                     f"of at least 0, got {window}."
                 )
+            if window[1] == 0:
+                return np.ones(N)
             sigma = np.floor(-N / 2 / np.sqrt(-2 * np.log(10 ** (-window[1] / 20))))
             return np.asarray(scipy.signal.get_window(("gaussian", sigma), N, fftbins=fftbins))
         else:
