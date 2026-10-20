@@ -76,3 +76,14 @@ def test_data_readme_documents_every_option_of_the_download_scripts() -> None:
     )
     for option in sorted(options - {"--help"}):
         assert f"**{option}**" in readme, f"{option} is not documented in basic_pitch/data/README.md"
+
+
+def test_split_options_are_described_as_fractions_and_name_the_datasets_that_use_them() -> None:
+    parser = argparse.ArgumentParser()
+    add_split(parser)
+    helps = {action.dest: action.help or "" for action in parser._actions}
+    for dest in ("train_percent", "validation_percent"):
+        assert "Fraction" in helps[dest]
+        assert "Percentage" not in helps[dest]
+    for dest in ("train_percent", "validation_percent", "split_seed"):
+        assert "guitarset" in helps[dest]

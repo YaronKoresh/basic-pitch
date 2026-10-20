@@ -85,19 +85,28 @@ def add_split(
         "--train-percent",
         type=float,
         default=train_percent,
-        help="Percentage of tracks to mark as train",
+        help=(
+            "Fraction of the tracks (between 0 and 1) to mark as train. "
+            "Only guitarset, ikala and medleydb_pitch use it, maestro and slakh keep their own splits"
+        ),
     )
     parser.add_argument(
         "--validation-percent",
         type=float,
         default=validation_percent,
-        help="Percentage of tracks to mark as validation",
+        help=(
+            "Fraction of the tracks (between 0 and 1) to mark as validation. "
+            "Only guitarset uses it, where the remaining tracks are the test split"
+        ),
     )
     parser.add_argument(
         "--split-seed",
         type=int,
         default=split_seed,
-        help="Seed for random number generator used in split generation",
+        help=(
+            "Seed for random number generator used in split generation. "
+            "Only guitarset, ikala and medleydb_pitch use it"
+        ),
     )
 
 
