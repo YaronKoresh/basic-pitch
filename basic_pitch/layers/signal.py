@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import numbers
 from typing import Any, Callable, Optional
 import tensorflow as tf
@@ -56,7 +57,8 @@ class Stft(tf.keras.layers.Layer):
             trainable: Accepted so that the layer can be rebuilt from its config. The layer has no weights.
 
         Raises:
-            ValueError: If a length is not a whole number above 0, or the window is longer than the FFT.
+            ValueError: If a length is not a whole number above 0, the window is longer than the FFT,
+                or the pad mode is not one of the supported modes.
         """
         for length_name, length in (
             ("fft_length", fft_length),
@@ -69,6 +71,8 @@ class Stft(tf.keras.layers.Layer):
                 raise ValueError(f"{length_name} must be a whole number above 0, got {length}.")
         if window_length is not None and window_length > fft_length:
             raise ValueError(f"window_length ({window_length}) must not be longer than fft_length ({fft_length}).")
+        if not isinstance(pad_mode, str) or pad_mode.upper() not in ("CONSTANT", "REFLECT", "SYMMETRIC"):
+            raise ValueError(f'pad_mode must be one of "CONSTANT", "REFLECT" or "SYMMETRIC", got {pad_mode!r}.')
         super().__init__(trainable=trainable, name=name, dtype=dtype, dynamic=False)
         self.fft_length = fft_length
         self.window_length = window_length if window_length is not None else self.fft_length
@@ -145,7 +149,12 @@ class Spectrogram(Stft):
         Args:
             power: Exponent to raise abs(stft) to.
             **kwargs: Any arguments that you'd pass to Stft
+
+        Raises:
+            ValueError: If power is not a finite number above 0, or an Stft argument is invalid.
         """
+        if isinstance(power, bool) or not isinstance(power, numbers.Real) or not math.isfinite(power) or power <= 0:
+            raise ValueError(f"power must be a finite number above 0, got {power}.")
         super().__init__(
             *args,
             **kwargs,
@@ -180,10 +189,11 @@ class NormalizedLog(tf.keras.layers.Layer):
         self.squeeze_batch = lambda batch: batch
         rank = input_shape.rank
         if rank == 4:
-            assert input_shape[1] == 1, "If the rank is 4, the second dimension must be length 1"
+            if input_shape[1] != 1:
+                raise ValueError(f"If the rank is 4, the second dimension must be length 1, got {input_shape}.")
             self.squeeze_batch = lambda batch: tf.squeeze(batch, axis=1)
-        else:
-            assert rank == 3, f"Only ranks 3 and 4 are supported!. Received rank {rank} for {input_shape}."
+        elif rank != 3:
+            raise ValueError(f"Only ranks 3 and 4 are supported!. Received rank {rank} for {input_shape}.")
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         inputs = self.squeeze_batch(inputs)  # type: ignore
