@@ -178,6 +178,24 @@ def test_predict_and_save_names_the_error_when_the_reason_for_skipping_audio_is_
     assert f"Could not process {bad}: EOFError. Skipping it." in output
 
 
+@pytest.mark.parametrize("as_path", [True, False])
+def test_predict_and_save_accepts_a_single_audio_path(tmp_path: pathlib.Path, as_path: bool) -> None:
+    audio = tmp_path / "song.wav"
+    audio.write_bytes((RESOURCES_PATH / "vocadito_10.wav").read_bytes())
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    inference.predict_and_save(
+        audio if as_path else str(audio),
+        output_dir,
+        True,
+        False,
+        False,
+        False,
+        model_or_model_path=ICASSP_2022_MODEL_PATH,
+    )
+    assert [p.name for p in output_dir.iterdir()] == ["song_basic_pitch.mid"]
+
+
 def test_predict_and_save_rejects_invalid_note_options_before_processing() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         output_dir = pathlib.Path(tmpdir)

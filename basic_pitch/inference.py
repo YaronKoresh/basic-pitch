@@ -591,7 +591,7 @@ def predict(
 
 
 def predict_and_save(
-    audio_path_list: Sequence[Union[pathlib.Path, str]],
+    audio_path_list: Union[Sequence[Union[pathlib.Path, str]], pathlib.Path, str],
     output_directory: Union[pathlib.Path, str],
     save_midi: bool,
     sonify_midi: bool,
@@ -613,7 +613,7 @@ def predict_and_save(
     """Make a prediction and save the results to file.
 
     Args:
-        audio_path_list: List of file paths for the audio to run inference on.
+        audio_path_list: List of file paths for the audio to run inference on. A single path is a list of one path.
         output_directory: Directory to output MIDI and all other outputs derived from the model to.
         save_midi: True to save midi.
         sonify_midi: Whether or not to render audio from the MIDI and output it to a file.
@@ -632,6 +632,10 @@ def predict_and_save(
         midi_tempo: The tempo of the MIDI file.
         suppress_harmonics: Drop weaker notes that sound 12, 19 or 24 semitones above a note starting at the same time.
     """
+    if isinstance(audio_path_list, (str, os.PathLike)):
+        # a single path is a list of one path, not a list of its characters
+        audio_path_list = [audio_path_list]
+
     infer.verify_outputs_requested(save_midi, sonify_midi, save_model_outputs, save_notes)
     if sonify_midi:
         infer.verify_sonification_samplerate(sonification_samplerate)
