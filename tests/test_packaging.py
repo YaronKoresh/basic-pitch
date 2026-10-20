@@ -136,3 +136,11 @@ def test_tox_mypy_environment_installs_pytest_so_test_decorators_are_typed() -> 
     parser.read(PYPROJECT.parent / "tox.ini")
     deps = {line.strip() for line in parser["testenv:mypy"]["deps"].splitlines() if line.strip()}
     assert {"mypy", "pytest", "pytest-mock"} <= deps
+
+
+@pytest.mark.parametrize("python_version", ["3.12", "3.13"])
+def test_resampy_without_pkg_resources_is_allowed_on_new_python(python_version: str) -> None:
+    # resampy before 0.4.3 imports pkg_resources, which a new virtual environment of Python 3.12+ does not have
+    active = _active_requirements(_project()["dependencies"], "Linux", python_version)
+    assert active["resampy"].specifier.contains("0.4.3")
+    assert not active["resampy"].specifier.contains("0.4.2")
