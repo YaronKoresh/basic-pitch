@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import atexit
+import glob
 import os
 import shutil
 import tempfile
@@ -46,6 +47,26 @@ def validation_cache_path() -> str:
     cache_dir = tempfile.mkdtemp(prefix="validation_set_cache_")
     atexit.register(shutil.rmtree, cache_dir, ignore_errors=True)
     return os.path.join(cache_dir, "cache")
+
+
+def verify_dataset_files(datasets_base_path: str, dataset_names: List[str]) -> None:
+    """Verify that every dataset has tfrecord files for the train and validation splits.
+
+    Args:
+        datasets_base_path: directory storing source datasets as tfrecord files
+        dataset_names: list of dataset_names to use
+
+    Raises:
+        ValueError: If a dataset has no tfrecord files for the train or the validation split.
+    """
+    for dataset_name in dataset_names:
+        for split in (Split.train, Split.validation):
+            pattern = os.path.join(datasets_base_path, dataset_name, "splits", split.name, "*tfrecord")
+            if not glob.glob(pattern):
+                raise ValueError(
+                    f"No tfrecord files found for the {split.name} split of {dataset_name} at {pattern}. "
+                    "Check --source, and create the dataset with bp-download if it was not created yet."
+                )
 
 
 def prepare_datasets(

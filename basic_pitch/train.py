@@ -71,6 +71,7 @@ def main(
         positive_onset_weight: weighting factor for the positive labels.
     """
     # configuration.add_externals()
+    tf_example_deserialization.verify_dataset_files(source, datasets_to_use)
     logging.info(f"source directory: {source}")
     logging.info(f"output directory: {output}")
     logging.info(f"tensorflow version: {tf.__version__}")
@@ -278,6 +279,11 @@ def console_entry_point() -> None:
         parser.error(f"--learning-rate must be a number above 0, got {args.learning_rate}.")
     if not math.isfinite(args.positive_onset_weight) or not 0 <= args.positive_onset_weight <= 1:
         parser.error(f"--positive-onset-weight must be a number between 0 and 1, got {args.positive_onset_weight}.")
+
+    try:
+        tf_example_deserialization.verify_dataset_files(args.source, datasets_to_use)
+    except ValueError as error:
+        parser.error(str(error))
 
     main(
         args.source,

@@ -15,27 +15,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pathlib
 import sys
 from typing import Any, List
 from unittest import mock
 
+import numpy as np
 import pytest
 
 pytest.importorskip("tensorflow")
 
 from basic_pitch import train  # noqa: E402
 
-BASE_ARGS = ["train", "--source", "source", "--output", "output", "--guitarset"]
+
+def make_source(root: pathlib.Path, splits: List[str]) -> str:
+    for split in splits:
+        split_dir = root / "guitarset" / "splits" / split
+        split_dir.mkdir(parents=True)
+        (split_dir / "a.tfrecord").write_bytes(b"")
+    return str(root)
 
 
-def run_train_cli(extra_args: List[str]) -> Any:
-    with mock.patch.object(sys, "argv", BASE_ARGS + extra_args), mock.patch.object(train, "main") as main:
+def base_args(source: str) -> List[str]:
+    return ["train", "--source", source, "--output", "output", "--guitarset"]
+
+
+@pytest.fixture
+def source(tmp_path: pathlib.Path) -> str:
+    return make_source(tmp_path, ["train", "validation"])
+
+
+def run_train_cli(source: str, extra_args: List[str]) -> Any:
+    with mock.patch.object(sys, "argv", base_args(source) + extra_args), mock.patch.object(train, "main") as main:
         train.console_entry_point()
     return main
 
 
-def test_valid_options_reach_main() -> None:
-    main = run_train_cli(["--training-shuffle-size", "0", "--positive-onset-weight", "1"])
+def test_valid_options_reach_main(source: str) -> None:
+    main = run_train_cli(source, ["--training-shuffle-size", "0", "--positive-onset-weight", "1"])
     main.assert_called_once()
 
 
@@ -58,12 +75,49 @@ def test_valid_options_reach_main() -> None:
     ],
 )
 def test_invalid_options_exit_with_a_usage_error_before_training(
-    extra_args: List[str], message: str, capsys: pytest.CaptureFixture[str]
+    source: str, extra_args: List[str], message: str, capsys: pytest.CaptureFixture[str]
 ) -> None:
     with mock.patch.object(train, "main") as main:
-        with mock.patch.object(sys, "argv", BASE_ARGS + extra_args):
+        with mock.patch.object(sys, "argv", base_args(source) + extra_args):
             with pytest.raises(SystemExit) as exit_info:
                 train.console_entry_point()
     assert exit_info.value.code == 2
     assert message in capsys.readouterr().err
     main.assert_not_called()
+
+
+@pytest.mark.parametrize("splits", [[], ["train"], ["validation"]])
+def test_source_without_train_and_validation_files_exits_with_a_usage_error_before_training(
+    tmp_path: pathlib.Path, splits: List[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = make_source(tmp_path, splits)
+    with mock.patch.object(train, "main") as main:
+        with mock.patch.object(sys, "argv", base_args(source)):
+            with pytest.raises(SystemExit) as exit_info:
+                train.console_entry_point()
+    assert exit_info.value.code == 2
+    assert "No tfrecord files found" in capsys.readouterr().err
+    main.assert_not_called()
+
+
+def test_main_rejects_a_source_without_dataset_files_before_building_the_model(tmp_path: pathlib.Path) -> None:
+    with mock.patch.object(train.models, "model") as build_model:
+        with pytest.raises(ValueError, match="No tfrecord files found"):
+            train.main(
+                str(tmp_path),
+                "output",
+                1,
+                1,
+                0.001,
+                1,
+                1,
+                1,
+                1,
+                ["guitarset"],
+                np.array([1.0]),
+                False,
+                False,
+                False,
+                0.5,
+            )
+    build_model.assert_not_called()
