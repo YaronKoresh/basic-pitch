@@ -25,6 +25,7 @@ from typing import Any, Dict, List
 
 import pytest
 from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -87,6 +88,18 @@ def test_classifiers_cover_new_python_versions() -> None:
     classifiers = _project()["classifiers"]
     for version in ["3.12", "3.13"]:
         assert f"Programming Language :: Python :: {version}" in classifiers
+
+
+def test_requires_python_starts_at_the_oldest_python_in_the_classifiers() -> None:
+    project = _project()
+    oldest = min(
+        tuple(int(part) for part in classifier.rsplit("::", 1)[1].split("."))
+        for classifier in project["classifiers"]
+        if re.fullmatch(r"Programming Language :: Python :: \d+\.\d+", classifier)
+    )
+    specifier = SpecifierSet(project["requires-python"])
+    assert specifier.contains(".".join(str(part) for part in oldest))
+    assert not specifier.contains(f"{oldest[0]}.{oldest[1] - 1}")
 
 
 def test_package_imports_without_any_model_runtime() -> None:

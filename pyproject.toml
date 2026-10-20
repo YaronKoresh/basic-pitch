@@ -2,6 +2,7 @@
 name = "basic-pitch"
 version = "0.4.0"
 description = "Basic Pitch, a lightweight yet powerful audio-to-MIDI converter with pitch bend detection."
+requires-python = ">=3.8"
 readme = "README.md"
 keywords = []
 classifiers = [
@@ -94,3 +95,6 @@ requires = [
 	"wheel",
 	"cython",
 ]
+
+[tool.black]
+target-version = ["py38"]
