@@ -705,7 +705,7 @@ def predict_and_save(
             )
         except Exception as e:
             # an audio file that cannot be decoded must not stop the files after it
-            print(f"  🚨 Could not process {audio_path}: {str(e) or type(e).__name__}. Skipping it.")
+            print(f"  🚨 Could not process {audio_path}: {(str(e) or type(e).__name__).rstrip('.')}. Skipping it.")
             unreadable_audio_paths.append(str(audio_path))
             continue
 

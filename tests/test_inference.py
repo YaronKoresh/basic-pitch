@@ -624,3 +624,17 @@ def test_predict_and_save_does_not_announce_files_of_an_audio_that_is_skipped_fo
     output = capsys.readouterr().out
     assert "Skipping output files" in output
     assert "Creating" not in output
+
+
+def test_predict_and_save_does_not_double_the_period_of_a_reason_that_ends_with_one(
+    capsys: pytest.CaptureFixture[str], tmp_path: pathlib.Path
+) -> None:
+    bad = tmp_path / "bad.wav"
+    bad.write_bytes(b"not audio")
+    with mock.patch.object(inference, "predict", side_effect=RuntimeError("Format not recognised.")):
+        with pytest.raises(IOError):
+            inference.predict_and_save(
+                [bad], tmp_path, True, False, False, False, model_or_model_path=mock.MagicMock(spec=inference.Model)
+            )
+    output = capsys.readouterr().out
+    assert f"Could not process {bad}: Format not recognised. Skipping it." in output
