@@ -167,8 +167,10 @@ predict_and_save(
 ```
 
 where:
-   - `<input-audio-path-list>` & `<output-directory>`
-        - directory paths for `basic-pitch` to read from/write to.
+   - `<input-audio-path-list>`
+        - a list of paths of the audio files to transcribe. A single path is treated as a list of one path, and an empty list is rejected.
+   - `<output-directory>`
+        - path of an existing directory for `basic-pitch` to write the output files to.
    - `<save-midi>`
         - *bool* to control generating and saving a MIDI file to the `<output-directory>`
    - `<sonify-midi>`

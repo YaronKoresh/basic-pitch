@@ -61,3 +61,9 @@ def test_source_comments_and_docstrings_do_not_contain_known_misspellings() -> N
         text = path.read_text(encoding="utf-8")
         for word in misspellings:
             assert word not in text, f"{path} contains the misspelling {word}"
+
+
+def test_readme_describes_the_audio_input_of_predict_and_save_as_files_not_directories() -> None:
+    readme = README_PATH.read_text(encoding="utf-8")
+    assert "`<input-audio-path-list>` & `<output-directory>`" not in readme
+    assert "paths of the audio files" in readme
