@@ -101,7 +101,7 @@ def test_source_without_train_and_validation_files_exits_with_a_usage_error_befo
 
 
 def test_main_rejects_a_source_without_dataset_files_before_building_the_model(tmp_path: pathlib.Path) -> None:
-    with mock.patch.object(train.models, "model") as build_model:
+    with mock.patch("basic_pitch.models.model") as build_model:
         with pytest.raises(ValueError, match="No tfrecord files found"):
             train.main(
                 str(tmp_path),

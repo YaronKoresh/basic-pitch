@@ -159,7 +159,7 @@ class Spectrogram(Stft):
             *args,
             **kwargs,
         )
-        self.power = power
+        self.power: float = power
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         return tf.math.pow(

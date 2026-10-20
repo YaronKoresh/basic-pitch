@@ -15,7 +15,7 @@ def run_main(monkeypatch: pytest.MonkeyPatch, *args: str) -> None:
 
 
 def test_missing_output_dir_exits_with_usage_error(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         missing = pathlib.Path(tmpdir) / "missing"
@@ -26,7 +26,7 @@ def test_missing_output_dir_exits_with_usage_error(
 
 
 def test_missing_input_file_exits_with_usage_error(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         with pytest.raises(SystemExit) as exit_info:
@@ -46,7 +46,7 @@ def test_unreadable_audio_exits_with_failure_status(monkeypatch: pytest.MonkeyPa
 
 @pytest.mark.parametrize("samplerate", ["0", "-5"])
 def test_invalid_sonification_samplerate_exits_with_usage_error(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture, samplerate: str
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], samplerate: str
 ) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         with pytest.raises(SystemExit) as exit_info:
@@ -64,7 +64,7 @@ def test_invalid_sonification_samplerate_exits_with_usage_error(
 
 
 def test_unloadable_model_path_exits_with_usage_error(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         with pytest.raises(SystemExit) as exit_info:
@@ -95,7 +95,7 @@ def capture_save_midi(monkeypatch: pytest.MonkeyPatch, *args: str) -> bool:
     monkeypatch.setattr(inference, "predict_and_save", fake_predict_and_save)
     with tempfile.TemporaryDirectory() as tmpdir:
         run_main(monkeypatch, tmpdir, str(RESOURCES_PATH / "vocadito_10.wav"), *args)
-    return captured["save_midi"]
+    return bool(captured["save_midi"])
 
 
 def test_midi_is_saved_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -111,7 +111,7 @@ def test_save_midi_flag_is_still_accepted(monkeypatch: pytest.MonkeyPatch) -> No
 
 
 def test_audio_files_with_the_same_output_name_exit_with_usage_error(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         first = pathlib.Path(tmpdir) / "a" / "song.wav"
@@ -126,7 +126,7 @@ def test_audio_files_with_the_same_output_name_exit_with_usage_error(
 
 
 def test_no_output_requested_exits_with_usage_error(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         with pytest.raises(SystemExit) as exit_info:
@@ -137,7 +137,7 @@ def test_no_output_requested_exits_with_usage_error(
 
 
 def test_debug_file_in_a_missing_directory_exits_with_usage_error(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         debug_file = pathlib.Path(tmpdir) / "missing" / "debug.json"
@@ -148,7 +148,7 @@ def test_debug_file_in_a_missing_directory_exits_with_usage_error(
 
 
 def test_debug_file_that_is_a_directory_exits_with_usage_error(
-    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         with pytest.raises(SystemExit) as exit_info:

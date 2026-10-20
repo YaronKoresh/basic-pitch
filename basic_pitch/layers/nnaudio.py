@@ -148,7 +148,7 @@ def _is_finite_number(value: object) -> bool:
     )
 
 
-def get_window_dispatch(window: Union[str, Tuple[str, float]], N: int, fftbins: bool = True) -> np.array:
+def get_window_dispatch(window: Union[str, float, Tuple[str, float]], N: int, fftbins: bool = True) -> np.array:
     if isinstance(window, str):
         return scipy.signal.get_window(window, N, fftbins=fftbins)
     elif isinstance(window, tuple):

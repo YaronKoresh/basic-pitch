@@ -21,7 +21,7 @@ import json
 import os
 import pathlib
 import tempfile
-from typing import Dict, List
+from typing import Any, Dict, List
 from unittest import mock
 
 import librosa
@@ -214,7 +214,7 @@ def test_predict_and_save_rejects_invalid_note_options_before_processing() -> No
 
 
 @pytest.mark.parametrize("samplerate", [0, -5, 1.5, True])
-def test_predict_and_save_rejects_invalid_sonification_samplerate_before_writing(samplerate) -> None:
+def test_predict_and_save_rejects_invalid_sonification_samplerate_before_writing(samplerate: Any) -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         output_dir = pathlib.Path(tmpdir)
         with pytest.raises(ValueError, match="sonification sample rate"):

@@ -17,7 +17,7 @@
 
 import pathlib
 import warnings
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import librosa
 import mido
@@ -333,14 +333,14 @@ def test_note_peak_threshold_can_be_disabled() -> None:
         {"melodia_peak_thresh": float("inf")},
     ],
 )
-def test_model_output_to_notes_rejects_out_of_range_options(options: dict) -> None:
+def test_model_output_to_notes_rejects_out_of_range_options(options: Dict[str, float]) -> None:
     n_frames = 20
     output = {
         "note": np.zeros((n_frames, 88), dtype=np.float32),
         "onset": np.zeros((n_frames, 88), dtype=np.float32),
         "contour": np.zeros((n_frames, 264), dtype=np.float32),
     }
-    kwargs = {"onset_thresh": 0.5, "frame_thresh": 0.3, **options}
+    kwargs: Dict[str, Any] = {"onset_thresh": 0.5, "frame_thresh": 0.3, **options}
     with pytest.raises(ValueError, match="must"):
         model_output_to_notes(output, **kwargs)
 
@@ -456,7 +456,7 @@ def test_output_to_notes_polyphonic_suppresses_harmonics_by_default() -> None:
 def test_get_pitch_bends_without_contour_activity_has_no_bend(pitch: int) -> None:
     contours = np.zeros((20, 264))
     (event,) = get_pitch_bends(contours, [(2, 10, pitch, 0.5)])
-    assert list(event[4]) == [0] * 8
+    assert event[4] == [0] * 8
 
 
 def test_get_pitch_bends_follows_contour_peak() -> None:
@@ -464,7 +464,7 @@ def test_get_pitch_bends_follows_contour_peak() -> None:
     centre = int(np.round(12.0 * 3 * np.log2(librosa.midi_to_hz(60) / librosa.midi_to_hz(21))))
     contours[2:10, centre + 3] = 1.0
     (event,) = get_pitch_bends(contours, [(2, 10, 60, 0.5)])
-    assert list(event[4]) == [3] * 8
+    assert event[4] == [3] * 8
 
 
 def test_note_events_to_midi_with_notes_tied_on_start_end_pitch_and_amplitude() -> None:
@@ -519,7 +519,7 @@ def test_notes_of_one_pitch_never_overlap_on_random_activations() -> None:
         notes = output_to_notes_polyphonic(
             frames, onsets, 0.5, 0.3, int(rng.integers(0, 12)), bool(rng.integers(0, 2)), None, None
         )
-        by_pitch = {}
+        by_pitch: Dict[int, List[Tuple[int, int]]] = {}
         for start, end, pitch, _ in notes:
             by_pitch.setdefault(pitch, []).append((start, end))
         for spans in by_pitch.values():
@@ -617,7 +617,7 @@ def test_note_events_to_midi_writes_lowest_and_high_tempos(tmp_path: pathlib.Pat
 def test_verify_note_options_rejects_values_that_are_not_numbers_with_a_value_error(
     bad: object, position: int, name: str
 ) -> None:
-    arguments: list = [0.5, 0.3, 116.0, 100.0, 1000.0, 120, 0.5, 0.4]
+    arguments: List[Any] = [0.5, 0.3, 116.0, 100.0, 1000.0, 120, 0.5, 0.4]
     if bad is None and position in (3, 4):
         return  # None means no frequency limit
     arguments[position] = bad

@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Iterator, Tuple
+from typing import Iterator, List, Tuple
 import unittest
 
 import numpy as np
@@ -148,7 +148,8 @@ class TestHarmonicStackingEdgeCases(unittest.TestCase):
         np.testing.assert_array_equal(output.numpy()[..., 1], np.ones((1, 4, 10)))
 
     def test_invalid_harmonics_raise_value_error(self) -> None:
-        for harmonics in ([0], [-1.0], [float("nan")], [float("inf")], [1, 0]):
+        cases: List[List[float]] = [[0], [-1.0], [float("nan")], [float("inf")], [1, 0]]
+        for harmonics in cases:
             with self.subTest(harmonics=harmonics):
                 with self.assertRaisesRegex(ValueError, "harmonics must be finite numbers above 0"):
                     nn.HarmonicStacking(3, harmonics, 10)

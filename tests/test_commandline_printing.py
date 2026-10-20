@@ -17,17 +17,19 @@
 
 import os
 
+import pytest
+
 from basic_pitch.commandline_printing import TF_LOG_LEVEL_KEY, no_tf_warnings
 
 
-def test_no_tf_warnings_silences_inside_and_removes_variable_afterwards(monkeypatch) -> None:
+def test_no_tf_warnings_silences_inside_and_removes_variable_afterwards(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv(TF_LOG_LEVEL_KEY, raising=False)
     with no_tf_warnings():
         assert os.environ[TF_LOG_LEVEL_KEY] == "3"
     assert TF_LOG_LEVEL_KEY not in os.environ
 
 
-def test_no_tf_warnings_restores_existing_value(monkeypatch) -> None:
+def test_no_tf_warnings_restores_existing_value(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(TF_LOG_LEVEL_KEY, "1")
     with no_tf_warnings():
         assert os.environ[TF_LOG_LEVEL_KEY] == "3"

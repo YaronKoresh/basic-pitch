@@ -43,7 +43,8 @@ def _active_requirements(requirements: List[str], system: str, python_version: s
 
 def _project() -> Dict[str, Any]:
     with open(PYPROJECT, "rb") as f:
-        return tomllib.load(f)["project"]
+        project: Dict[str, Any] = tomllib.load(f)["project"]
+    return project
 
 
 @pytest.mark.parametrize("system", ["Linux", "Darwin", "Windows"])
@@ -128,3 +129,10 @@ def test_dockerfile_and_tox_install_only_extras_that_the_project_defines() -> No
     }
     assert requested
     assert requested <= set(_project()["optional-dependencies"])
+
+
+def test_tox_mypy_environment_installs_pytest_so_test_decorators_are_typed() -> None:
+    parser = configparser.ConfigParser()
+    parser.read(PYPROJECT.parent / "tox.ini")
+    deps = {line.strip() for line in parser["testenv:mypy"]["deps"].splitlines() if line.strip()}
+    assert {"mypy", "pytest", "pytest-mock"} <= deps

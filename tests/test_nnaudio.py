@@ -55,8 +55,9 @@ class TestGetWindowDispatch:
         assert "Tuple" in str(w[0].message)
 
     def test_invalid_type_raises(self) -> None:
+        window_list: Any = [1, 2, 3]
         with pytest.raises(Exception, match="only supports"):
-            get_window_dispatch([1, 2, 3], 256)
+            get_window_dispatch(window_list, 256)
 
     def test_gaussian_tuple_with_zero_attenuation_is_flat(self) -> None:
         np.testing.assert_allclose(get_window_dispatch(("gaussian", 0), 8), np.ones(8))

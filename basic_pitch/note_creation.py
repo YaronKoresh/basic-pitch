@@ -81,9 +81,9 @@ def verify_note_options(
             raise ValueError(f"The {name} must be a number between 0 and 1, got {value}.")
     if not _is_number(min_note_len) or not math.isfinite(min_note_len) or min_note_len < 0:
         raise ValueError(f"The minimum note length must be a number of at least 0, got {min_note_len}.")
-    for name, value in (("minimum frequency", min_freq), ("maximum frequency", max_freq)):
-        if value is not None and (not _is_number(value) or not math.isfinite(value) or value <= 0):
-            raise ValueError(f"The {name} must be a number above 0 Hz, got {value}.")
+    for name, frequency in (("minimum frequency", min_freq), ("maximum frequency", max_freq)):
+        if frequency is not None and (not _is_number(frequency) or not math.isfinite(frequency) or frequency <= 0):
+            raise ValueError(f"The {name} must be a number above 0 Hz, got {frequency}.")
     if min_freq is not None and max_freq is not None and min_freq > max_freq:
         raise ValueError(f"The minimum frequency ({min_freq}) must not be above the maximum frequency ({max_freq}).")
     if not _is_number(midi_tempo) or not math.isfinite(midi_tempo) or midi_tempo <= 0:
@@ -586,7 +586,8 @@ def find_onset_peaks(onsets: np.array) -> Tuple[np.array, np.array]:
     below = np.full((1, onsets.shape[1]), -np.inf)
     previous = np.concatenate([below, onsets[:-1]])
     following = np.concatenate([onsets[1:], below])
-    return np.where((onsets > 0) & (onsets > previous) & (onsets >= following))
+    peaks: Tuple[np.array, np.array] = np.where((onsets > 0) & (onsets > previous) & (onsets >= following))
+    return peaks
 
 
 def output_to_notes_polyphonic(
