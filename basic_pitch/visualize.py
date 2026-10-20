@@ -197,6 +197,7 @@ def _array_to_sonification(array: tf.Tensor, max_outputs: int, clip: float = 0.3
         else:
             times_truncated = TIMES
 
+        gram = gram[:, : times_truncated.shape[0]]
         gram[gram < clip] = 0.0
         y = mir_eval.sonify.time_frequency(
             gram[:MAX_FREQ_INDEX, :],
