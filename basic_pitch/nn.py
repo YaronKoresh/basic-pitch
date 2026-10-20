@@ -44,10 +44,16 @@ class HarmonicStacking(tf.keras.layers.Layer):
     """
 
     def __init__(
-        self, bins_per_semitone: int, harmonics: List[float], n_output_freqs: int, name: str = "harmonic_stacking"
+        self,
+        bins_per_semitone: int,
+        harmonics: List[float],
+        n_output_freqs: int,
+        name: str = "harmonic_stacking",
+        **kwargs: Any,
     ):
         """Downsample frequency by stride, upsample channels by 4."""
-        super().__init__(trainable=False, name=name)
+        kwargs["trainable"] = False
+        super().__init__(name=name, **kwargs)
         for name, value in (("bins_per_semitone", bins_per_semitone), ("n_output_freqs", n_output_freqs)):
             if isinstance(value, bool) or not isinstance(value, numbers.Integral) or value < 1:
                 raise ValueError(f"{name} must be a whole number of at least 1, got {value}.")

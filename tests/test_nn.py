@@ -148,6 +148,19 @@ class TestHarmonicStackingEdgeCases(unittest.TestCase):
         np.testing.assert_array_equal(output.numpy()[..., 0], np.zeros((1, 4, 10)))
         np.testing.assert_array_equal(output.numpy()[..., 1], np.ones((1, 4, 10)))
 
+    def test_can_be_rebuilt_from_its_config(self) -> None:
+        layer = nn.HarmonicStacking(3, [0.5, 1, 2], 8, name="stacking")
+        rebuilt = nn.HarmonicStacking.from_config(layer.get_config())
+        self.assertEqual(rebuilt.name, "stacking")
+        self.assertFalse(rebuilt.trainable)
+        self.assertEqual(rebuilt.get_config(), layer.get_config())
+        x = tf.random.normal((1, 4, 24, 1))
+        np.testing.assert_array_equal(rebuilt(x).numpy(), layer(x).numpy())
+
+    def test_stays_not_trainable_when_the_config_says_otherwise(self) -> None:
+        config = dict(nn.HarmonicStacking(3, [1, 2], 8).get_config(), trainable=True)
+        self.assertFalse(nn.HarmonicStacking.from_config(config).trainable)
+
     def test_invalid_harmonics_raise_value_error(self) -> None:
         cases: List[List[float]] = [[0], [-1.0], [float("nan")], [float("inf")], [1, 0]]
         for harmonics in cases:
