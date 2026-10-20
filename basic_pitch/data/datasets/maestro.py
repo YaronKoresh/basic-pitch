@@ -19,7 +19,7 @@ import argparse
 import logging
 import os
 import time
-from typing import Any, Dict, List, TextIO, Tuple
+from typing import Any, Dict, List, Optional, TextIO, Tuple
 
 import apache_beam as beam
 import mirdata
@@ -162,8 +162,8 @@ class MaestroToTfExample(beam.DoFn):
         return [batch]
 
 
-def create_input_data() -> List[Tuple[str, str]]:
-    maestro = mirdata.initialize("maestro")
+def create_input_data(source: Optional[str] = None) -> List[Tuple[str, str]]:
+    maestro = mirdata.initialize("maestro", data_home=source)
     maestro.download(["metadata"])
     return [(track_id, track.split) for track_id, track in maestro.load_tracks().items()]
 
@@ -186,7 +186,7 @@ def main(known_args: argparse.Namespace, pipeline_args: List[str]) -> None:
         "environment_type": "DOCKER",
         "environment_config": known_args.sdk_container_image,
     }
-    input_data = create_input_data()
+    input_data = create_input_data(known_args.source)
     pipeline.run(
         pipeline_options,
         pipeline_args,

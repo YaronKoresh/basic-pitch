@@ -135,13 +135,15 @@ class IkalaToTfExample(beam.DoFn):
         return [batch]
 
 
-def create_input_data(train_percent: float, seed: Optional[int] = None) -> List[Tuple[str, str]]:
+def create_input_data(
+    train_percent: float, seed: Optional[int] = None, source: Optional[str] = None
+) -> List[Tuple[str, str]]:
     commandline.verify_split_percents(train_percent)
 
     if seed is not None:
         random.seed(seed)
 
-    ikala = mirdata.initialize("ikala")
+    ikala = mirdata.initialize("ikala", data_home=None if source is None else os.path.join(source, "iKala"))
     ikala.download(["index"])
     track_ids = ikala.track_ids
     random.shuffle(track_ids)
@@ -168,7 +170,7 @@ def main(known_args: argparse.Namespace, pipeline_args: List[str]) -> None:
         "job_endpoint": known_args.job_endpoint,
         "environment_config": known_args.sdk_container_image,
     }
-    input_data = create_input_data(known_args.train_percent, known_args.split_seed)
+    input_data = create_input_data(known_args.train_percent, known_args.split_seed, known_args.source)
     pipeline.run(
         pipeline_options,
         pipeline_args,

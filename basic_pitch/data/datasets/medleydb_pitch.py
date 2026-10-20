@@ -133,13 +133,15 @@ class MedleyDbPitchToTfExample(beam.DoFn):
         return [batch]
 
 
-def create_input_data(train_percent: float, seed: Optional[int] = None) -> List[Tuple[str, str]]:
+def create_input_data(
+    train_percent: float, seed: Optional[int] = None, source: Optional[str] = None
+) -> List[Tuple[str, str]]:
     commandline.verify_split_percents(train_percent)
 
     if seed is not None:
         random.seed(seed)
 
-    medleydb_pitch = mirdata.initialize("medleydb_pitch")
+    medleydb_pitch = mirdata.initialize("medleydb_pitch", data_home=source)
     medleydb_pitch.download(["index"])
     track_ids = medleydb_pitch.track_ids
     random.shuffle(track_ids)
@@ -153,7 +155,7 @@ def create_input_data(train_percent: float, seed: Optional[int] = None) -> List[
 def main(known_args: argparse.Namespace, pipeline_args: List[str]) -> None:
     time_created = int(time.time())
     destination = commandline.resolve_destination(known_args, time_created)
-    input_data = create_input_data(known_args.train_percent, known_args.split_seed)
+    input_data = create_input_data(known_args.train_percent, known_args.split_seed, known_args.source)
 
     pipeline_options = {
         "runner": known_args.runner,

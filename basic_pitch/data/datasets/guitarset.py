@@ -124,7 +124,7 @@ class GuitarSetToTfExample(beam.DoFn):
 
 
 def create_input_data(
-    train_percent: float, validation_percent: float, seed: Optional[int] = None
+    train_percent: float, validation_percent: float, seed: Optional[int] = None, source: Optional[str] = None
 ) -> List[Tuple[str, str]]:
     commandline.verify_split_percents(train_percent, validation_percent)
 
@@ -143,7 +143,7 @@ def create_input_data(
         else:
             return "test"
 
-    guitarset = mirdata.initialize("guitarset")
+    guitarset = mirdata.initialize("guitarset", data_home=source)
     guitarset.download(["index"])
     track_ids = guitarset.track_ids
     random.shuffle(track_ids)
@@ -154,7 +154,9 @@ def create_input_data(
 def main(known_args: argparse.Namespace, pipeline_args: List[str]) -> None:
     time_created = int(time.time())
     destination = commandline.resolve_destination(known_args, time_created)
-    input_data = create_input_data(known_args.train_percent, known_args.validation_percent, known_args.split_seed)
+    input_data = create_input_data(
+        known_args.train_percent, known_args.validation_percent, known_args.split_seed, known_args.source
+    )
 
     pipeline_options = {
         "runner": known_args.runner,

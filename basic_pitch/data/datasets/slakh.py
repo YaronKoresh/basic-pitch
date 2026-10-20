@@ -20,7 +20,7 @@ import logging
 import os
 import time
 
-from typing import List, Tuple, Any
+from typing import List, Optional, Tuple, Any
 
 import apache_beam as beam
 import mirdata
@@ -180,8 +180,8 @@ class SlakhToTfExample(beam.DoFn):
         return [batch]
 
 
-def create_input_data() -> List[Tuple[str, str]]:
-    slakh = mirdata.initialize("slakh")
+def create_input_data(source: Optional[str] = None) -> List[Tuple[str, str]]:
+    slakh = mirdata.initialize("slakh", data_home=source)
     slakh.download(["index"])
     return [(track_id, track.data_split) for track_id, track in slakh.load_tracks().items()]
 
@@ -189,7 +189,7 @@ def create_input_data() -> List[Tuple[str, str]]:
 def main(known_args: argparse.Namespace, pipeline_args: List[str]) -> None:
     time_created = int(time.time())
     destination = commandline.resolve_destination(known_args, time_created)
-    input_data = create_input_data()
+    input_data = create_input_data(known_args.source)
 
     pipeline_options = {
         "runner": known_args.runner,
