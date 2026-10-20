@@ -659,10 +659,15 @@ def output_to_notes_polyphonic(
         if note_start_idx >= n_frames - 1:
             continue
 
+        # a note ends where it reaches a note of the same pitch that was already found, as the energy of those frames
+        # only counts as used up when it is below the frame threshold
+        claimed_after = np.flatnonzero(claimed[note_start_idx + 1 :, freq_idx])
+        note_limit = note_start_idx + 1 + claimed_after[0] if len(claimed_after) else n_frames
+
         # find time index at this frequency band where the frames drop below an energy threshold
         i = note_start_idx + 1
         k = 0  # number of frames since energy dropped below threshold
-        while i < n_frames and k < energy_tol:
+        while i < note_limit and k < energy_tol:
             if remaining_energy[i, freq_idx] < frame_thresh:
                 k += 1
             else:

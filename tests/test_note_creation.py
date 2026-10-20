@@ -510,6 +510,18 @@ def test_melodia_note_does_not_run_over_onset_note_in_the_middle() -> None:
         assert first_end <= second_start
 
 
+def test_notes_of_one_pitch_do_not_overlap_when_the_frame_threshold_is_zero() -> None:
+    n_frames = 30
+    frames = np.full((n_frames, 88), 0.9)
+    onsets = np.zeros((n_frames, 88))
+    onsets[3, 40] = 1.0
+    onsets[10, 40] = 1.0
+    notes = output_to_notes_polyphonic(
+        frames, onsets, 0.5, 0.0, 2, False, None, None, melodia_trick=False, suppress_harmonics=False
+    )
+    assert [(int(start), int(end), int(pitch)) for start, end, pitch, _ in notes] == [(3, 10, 61), (10, 30, 61)]
+
+
 def test_notes_of_one_pitch_never_overlap_on_random_activations() -> None:
     rng = np.random.default_rng(3)
     for _ in range(60):
