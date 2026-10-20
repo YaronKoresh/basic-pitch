@@ -43,3 +43,13 @@ def test_readme_python_examples_are_valid_python() -> None:
 def test_readme_python_examples_do_not_call_range_without_arguments() -> None:
     for example in readme_python_examples():
         assert "range()" not in example
+
+
+def test_contributing_names_the_line_length_that_tox_uses_for_black() -> None:
+    root = README_PATH.parent
+    match = re.search(r'LINE_LENGTH = "?(\d+)"?', (root / "tox.ini").read_text())
+    assert match is not None
+    line_length = match.group(1)
+    contributing = (root / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    assert f"--line-length {line_length}" in contributing
+    assert "black` with defaults" not in contributing

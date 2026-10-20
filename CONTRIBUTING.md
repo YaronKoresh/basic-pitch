@@ -45,11 +45,11 @@ tox
 
 ## Style
 
-Use `black` with defaults for Python code.
+Use `black` with `--line-length 120` for Python code. `tox -e format` formats the code with it and `tox -e check-formatting` checks it.
 
 ## Issues
 
-When creating an issue please try to ahere to the following format:
+When creating an issue please try to adhere to the following format:
 
     module-name: One line summary of the issue (less than 72 characters)
 
