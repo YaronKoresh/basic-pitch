@@ -18,6 +18,7 @@
 import configparser
 import pathlib
 import re
+import shlex
 import subprocess
 import sys
 from typing import Any, Dict, List
@@ -144,3 +145,19 @@ def test_resampy_without_pkg_resources_is_allowed_on_new_python(python_version: 
     active = _active_requirements(_project()["dependencies"], "Linux", python_version)
     assert active["resampy"].specifier.contains("0.4.3")
     assert not active["resampy"].specifier.contains("0.4.2")
+
+
+def test_install_commands_in_the_missing_runtime_warnings_are_valid() -> None:
+    code = (
+        "import sys\n"
+        "for name in ('coremltools', 'tflite_runtime', 'onnxruntime', 'tensorflow'):\n"
+        "    sys.modules[name] = None\n"
+        "import basic_pitch\n"
+    )
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True)
+
+    commands = re.findall(r"`pip install ([^`]+)`", result.stderr)
+    assert len(commands) == 5
+    for command in commands:
+        for argument in shlex.split(command):
+            Requirement(argument)

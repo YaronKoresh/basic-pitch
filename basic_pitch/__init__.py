@@ -47,7 +47,7 @@ except ImportError:
     logging.warning(
         "tflite-runtime is not installed. "
         "If you plan to use a TFLite Model, "
-        "reinstall basic-pitch with `pip install 'basic-pitch tflite-runtime'` or "
+        "reinstall basic-pitch with `pip install basic-pitch tflite-runtime` or "
         "`pip install 'basic-pitch[tf]'`"
     )
 
