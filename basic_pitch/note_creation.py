@@ -366,12 +366,14 @@ def note_events_to_midi(
     """Create a pretty_midi object from note events
 
     Args:
-        note_events : list of tuples [(start_time_seconds, end_time_seconds, pitch_midi, amplitude)]
-            where amplitude is a number between 0 and 1
+        note_events_with_pitch_bends : list of tuples
+            [(start_time_seconds, end_time_seconds, pitch_midi, amplitude, pitch_bends)]
+            where amplitude is a number between 0 and 1 and pitch_bends is a list of pitch bends or None
         multiple_pitch_bends : If True, allow overlapping notes to have pitch bends
             Note: this will assign each pitch to its own midi instrument, as midi does not yet
             support per-note pitch bends. A midi file has 15 usable channels, so with more pitches
             than that, notes that do not sound at the same time share an instrument.
+        midi_tempo : The tempo of the MIDI file, in beats per minute.
 
     Returns:
         pretty_midi.PrettyMIDI() object

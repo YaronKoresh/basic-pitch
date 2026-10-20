@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import inspect
 import pathlib
 import warnings
 from typing import Any, Dict, List, Optional, Tuple, cast
@@ -736,3 +737,9 @@ def test_note_events_to_midi_writes_a_note_that_starts_at_zero_and_one_with_equa
     tmp_path: pathlib.Path,
 ) -> None:
     note_events_to_midi([(0.0, 0.5, 60, 0.8, None), (1.0, 1.0, 62, 0.8, None)]).write(str(tmp_path / "notes.mid"))
+
+
+def test_note_events_to_midi_docstring_names_every_parameter_of_its_signature() -> None:
+    documented = (note_events_to_midi.__doc__ or "").split("Args:")[1].split("Returns:")[0]
+    for name in inspect.signature(note_events_to_midi).parameters:
+        assert f"{name} :" in documented or f"{name}:" in documented, name
