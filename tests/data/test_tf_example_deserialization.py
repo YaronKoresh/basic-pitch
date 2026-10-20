@@ -36,6 +36,7 @@ from basic_pitch.data.tf_example_deserialization import (
     sample_datasets,
     transcription_file_generator,
     validation_cache_path,
+    verify_dataset_files,
 )
 
 from utils import create_mock_wav
@@ -225,3 +226,44 @@ def test_validation_cache_paths_are_unique_and_removed_at_exit(monkeypatch: pyte
         function(*args, **kwargs)
     assert not os.path.exists(os.path.dirname(first))
     assert not os.path.exists(os.path.dirname(second))
+
+
+@pytest.mark.parametrize(
+    "batch_size, validation_steps, shuffle_size, name",
+    [
+        (0, 1, 1, "batch_size"),
+        (-2, 1, 1, "batch_size"),
+        (1.5, 1, 1, "batch_size"),
+        (1, 0, 1, "validation_steps"),
+        (1, None, 1, "validation_steps"),
+        (1, 1, None, "training_shuffle_buffer_size"),
+        (1, 1, -1, "training_shuffle_buffer_size"),
+    ],
+)
+def test_prepare_datasets_rejects_options_it_cannot_use_with_a_value_error(
+    tmp_path: pathlib.Path, batch_size: Any, validation_steps: Any, shuffle_size: Any, name: str
+) -> None:
+    with pytest.raises(ValueError, match=name):
+        prepare_datasets(str(tmp_path), shuffle_size, batch_size, validation_steps, ["guitarset"], np.array([1.0]))
+
+
+@pytest.mark.parametrize("batch_size, validation_steps, name", [(0, 1, "batch_size"), (1, 0, "validation_steps")])
+def test_prepare_visualization_datasets_rejects_options_it_cannot_use_with_a_value_error(
+    tmp_path: pathlib.Path, batch_size: int, validation_steps: int, name: str
+) -> None:
+    with pytest.raises(ValueError, match=name):
+        prepare_visualization_datasets(str(tmp_path), batch_size, validation_steps, ["guitarset"], np.array([1.0]))
+
+
+def test_verify_dataset_files_names_the_missing_split(tmp_path: pathlib.Path) -> None:
+    train_dir = tmp_path / "guitarset" / "splits" / "train"
+    train_dir.mkdir(parents=True)
+    (train_dir / "a.tfrecord").write_bytes(b"")
+    with pytest.raises(ValueError, match="validation split of guitarset"):
+        verify_dataset_files(str(tmp_path), ["guitarset"])
+    validation_dir = tmp_path / "guitarset" / "splits" / "validation"
+    validation_dir.mkdir(parents=True)
+    (validation_dir / "b.tfrecord").write_bytes(b"")
+    verify_dataset_files(str(tmp_path), ["guitarset"])
+    with pytest.raises(ValueError, match="train split of maestro"):
+        verify_dataset_files(str(tmp_path), ["guitarset", "maestro"])

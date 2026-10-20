@@ -17,6 +17,7 @@
 
 import atexit
 import glob
+import numbers
 import os
 import shutil
 import tempfile
@@ -69,6 +70,19 @@ def verify_dataset_files(datasets_base_path: str, dataset_names: List[str]) -> N
                 )
 
 
+def _verify_dataset_options(
+    batch_size: int, validation_steps: int, training_shuffle_buffer_size: Optional[int] = 0
+) -> None:
+    """Raise a ValueError if a batch size, a number of validation steps or a shuffle size cannot be used."""
+    for name, value, minimum in (
+        ("batch_size", batch_size, 1),
+        ("validation_steps", validation_steps, 1),
+        ("training_shuffle_buffer_size", training_shuffle_buffer_size, 0),
+    ):
+        if isinstance(value, bool) or not isinstance(value, numbers.Integral) or value < minimum:
+            raise ValueError(f"{name} must be a whole number of at least {minimum}, got {value}.")
+
+
 def prepare_datasets(
     datasets_base_path: str,
     training_shuffle_buffer_size: int,
@@ -92,9 +106,7 @@ def prepare_datasets(
     Returns:
         training and validation datasets derived from the underlying tfrecord data
     """
-    assert batch_size > 0
-    assert validation_steps is not None and validation_steps > 0
-    assert training_shuffle_buffer_size is not None
+    _verify_dataset_options(batch_size, validation_steps, training_shuffle_buffer_size)
 
     # init both
     ds_train = sample_datasets(
@@ -154,8 +166,7 @@ def prepare_visualization_datasets(
         training and validation datasets derived from the underlying tfrecord data
     """
 
-    assert batch_size > 0
-    assert validation_steps is not None and validation_steps > 0
+    _verify_dataset_options(batch_size, validation_steps)
 
     ds_train = sample_datasets(
         Split.train,
