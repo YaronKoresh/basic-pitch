@@ -209,14 +209,18 @@ def model_output_to_notes(
     )
 
 
-def sonify_midi(midi: pretty_midi.PrettyMIDI, save_path: Union[pathlib.Path, str], sr: Optional[int] = 44100) -> None:
+def sonify_midi(midi: pretty_midi.PrettyMIDI, save_path: Union[pathlib.Path, str], sr: int = 44100) -> None:
     """Sonify a pretty_midi midi object and save to a file.
 
     Args:
         midi: A pretty_midi.PrettyMIDI object that will be sonified.
         save_path: Where to save the sonified midi.
-        sr: Sample rate for rendering audio from midi.
+        sr: Sample rate for rendering audio from midi, a whole number of Hz above 0.
+
+    Raises:
+        ValueError: If the sample rate cannot be written to a wav file.
     """
+    verify_sonification_samplerate(sr)
     y = midi.synthesize(sr)
     wavfile.write(save_path, sr, y)
 

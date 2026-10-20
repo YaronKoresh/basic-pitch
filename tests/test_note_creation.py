@@ -24,6 +24,7 @@ import mido
 import numpy as np
 import pretty_midi
 import pytest
+from scipy.io import wavfile
 
 from basic_pitch.constants import AUDIO_SAMPLE_RATE, FFT_HOP
 from basic_pitch.inference import DEFAULT_MINIMUM_NOTE_LENGTH_MS
@@ -39,6 +40,7 @@ from basic_pitch.note_creation import (
     model_output_to_notes,
     note_events_to_midi,
     output_to_notes_polyphonic,
+    sonify_midi,
     sonify_salience,
     suppress_harmonic_notes,
     verify_note_options,
@@ -639,3 +641,27 @@ def test_verify_note_options_rejects_values_that_are_not_numbers_with_a_value_er
 
 def test_verify_note_options_accepts_numpy_numbers() -> None:
     verify_note_options(np.float32(0.5), np.float64(0.3), np.int64(116), np.float32(100), np.int32(1000), np.int64(120))
+
+
+@pytest.mark.parametrize("samplerate", [None, 0, -5, 1.5, "44100", True])
+def test_sonify_midi_rejects_a_sample_rate_that_cannot_be_written_before_rendering(
+    samplerate: Any, tmp_path: pathlib.Path
+) -> None:
+    midi = note_events_to_midi([(0.0, 0.5, 60, 0.8, None)])
+    save_path = tmp_path / "sonified.wav"
+
+    with pytest.raises(ValueError, match="sonification sample rate"):
+        sonify_midi(midi, save_path, sr=samplerate)
+
+    assert not save_path.exists()
+
+
+def test_sonify_midi_writes_a_wav_with_the_requested_sample_rate(tmp_path: pathlib.Path) -> None:
+    midi = note_events_to_midi([(0.0, 0.5, 60, 0.8, None)])
+    save_path = tmp_path / "sonified.wav"
+
+    sonify_midi(midi, save_path, sr=22050)
+
+    sample_rate, audio = wavfile.read(save_path)
+    assert sample_rate == 22050
+    assert len(audio) > 0
