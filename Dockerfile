@@ -15,5 +15,5 @@ WORKDIR basic-pitch
 RUN --mount=type=cache,target=/root/.cache \
   pip3 install --upgrade pip && \
   pip3 install --upgrade setuptools wheel && \
-  pip3 install -e '.[train]' 
+  pip3 install -e '.[data]' 
 

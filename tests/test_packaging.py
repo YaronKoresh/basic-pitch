@@ -17,6 +17,7 @@
 
 import configparser
 import pathlib
+import re
 import subprocess
 import sys
 from typing import Any, Dict, List
@@ -117,3 +118,13 @@ def test_tox_mypy_command_can_check_both_conftest_files() -> None:
         text=True,
     )
     assert "Duplicate module" not in result.stdout + result.stderr
+
+
+def test_dockerfile_and_tox_install_only_extras_that_the_project_defines() -> None:
+    root = PYPROJECT.parent
+    texts = [(root / "Dockerfile").read_text(), (root / "tox.ini").read_text()]
+    requested = {
+        name.strip() for text in texts for match in re.findall(r"\.\[([^\]]+)\]", text) for name in match.split(",")
+    }
+    assert requested
+    assert requested <= set(_project()["optional-dependencies"])
