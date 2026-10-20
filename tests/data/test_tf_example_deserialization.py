@@ -255,6 +255,20 @@ def test_prepare_visualization_datasets_rejects_options_it_cannot_use_with_a_val
         prepare_visualization_datasets(str(tmp_path), batch_size, validation_steps, ["guitarset"], np.array([1.0]))
 
 
+@pytest.mark.parametrize("prepare", ["prepare_datasets", "prepare_visualization_datasets"])
+def test_prepare_datasets_rejects_a_dataset_that_repeats_forever_with_a_value_error(mocker: Any, prepare: str) -> None:
+    mocker.patch(
+        "basic_pitch.data.tf_example_deserialization.sample_datasets",
+        return_value=tf.data.Dataset.range(1).repeat(),
+    )
+    args = (1, 1, ["guitarset"], np.array([1.0]))
+    with pytest.raises(ValueError, match="finite"):
+        if prepare == "prepare_datasets":
+            prepare_datasets("unused", 0, *args)
+        else:
+            prepare_visualization_datasets("unused", *args)
+
+
 def test_verify_dataset_files_names_the_missing_split(tmp_path: pathlib.Path) -> None:
     train_dir = tmp_path / "guitarset" / "splits" / "train"
     train_dir.mkdir(parents=True)

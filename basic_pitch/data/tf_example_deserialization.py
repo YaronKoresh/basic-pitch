@@ -84,6 +84,13 @@ def _verify_dataset_options(
             raise ValueError(f"{name} must be a whole number of at least {minimum}, got {value}.")
 
 
+def _verify_finite_datasets(*datasets: tf.data.Dataset) -> None:
+    """Raise a ValueError if one of the base datasets repeats forever, as batching it later would never end."""
+    for ds in datasets:
+        if tf.data.experimental.cardinality(ds).numpy() == tf.data.experimental.INFINITE_CARDINALITY:
+            raise ValueError("The base datasets must be finite, but one of them repeats forever.")
+
+
 def prepare_datasets(
     datasets_base_path: str,
     training_shuffle_buffer_size: int,
@@ -123,9 +130,7 @@ def prepare_datasets(
         dataset_sampling_frequency=dataset_sampling_frequency,
     )
 
-    # check that the base dataset returned by ds_function is FINITE
-    for ds in [ds_train, ds_validation]:
-        assert tf.cast(tf.data.experimental.cardinality(ds), tf.int32) != tf.data.experimental.INFINITE_CARDINALITY
+    _verify_finite_datasets(ds_train, ds_validation)
 
     # training dataset
     if training_shuffle_buffer_size > 0:
@@ -184,9 +189,7 @@ def prepare_visualization_datasets(
         n_samples_per_track=1,
     )
 
-    # check that the base dataset returned by ds_function is FINITE
-    for ds in [ds_train, ds_validation]:
-        assert tf.cast(tf.data.experimental.cardinality(ds), tf.int32) != tf.data.experimental.INFINITE_CARDINALITY
+    _verify_finite_datasets(ds_train, ds_validation)
 
     # training dataset
     ds_train = ds_train.repeat().batch(batch_size).prefetch(tf.data.AUTOTUNE)
