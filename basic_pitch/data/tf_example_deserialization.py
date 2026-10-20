@@ -677,6 +677,12 @@ def extract_window(
     return (audio_trim, onset_trim, contour_trim, note_trim)
 
 
+def pad_time(data: tf.Tensor, n_time: int) -> tf.Tensor:
+    """Pad 2D data as (n_time_samples, n_channels) with zeros at the end, up to n_time samples."""
+    n_missing = tf.maximum(n_time - tf.shape(data)[0], 0)
+    return tf.pad(data, [[0, n_missing], [0, 0]])
+
+
 def extract_random_window(
     audio: tf.Tensor, onsets: npt.NDArray[Any], contour: npt.NDArray[Any], notes: npt.NDArray[Any], seed: Optional[int]
 ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
@@ -693,6 +699,11 @@ def extract_random_window(
         onsets : matrix of note onsets (AUDIO_SAMPLE_RATE * ANNOTATIONS_FPS, N_FREQ_BINS_NOTES)
         contours : matrix of contour frames (AUDIO_SAMPLE_RATE * ANNOTATIONS_FPS, N_FREQ_BINS_CONTOURS)
     """
+    # a track shorter than the window is padded with silence, instead of failing to be sliced
+    audio = pad_time(audio, AUDIO_N_SAMPLES)
+    onsets = pad_time(onsets, ANNOT_N_FRAMES)
+    contour = pad_time(contour, ANNOT_N_FRAMES)
+    notes = pad_time(notes, ANNOT_N_FRAMES)
     n_sec = tf.math.divide(
         tf.cast(tf.shape(audio)[0], dtype=tf.float32),
         tf.cast(AUDIO_SAMPLE_RATE, dtype=tf.float32),

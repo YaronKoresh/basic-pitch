@@ -27,10 +27,17 @@ import tensorflow as tf
 from apache_beam.testing.test_pipeline import TestPipeline
 from typing import Any, List
 
-from basic_pitch.constants import Split
+from basic_pitch.constants import (
+    ANNOT_N_FRAMES,
+    AUDIO_N_SAMPLES,
+    N_FREQ_BINS_CONTOURS,
+    N_FREQ_BINS_NOTES,
+    Split,
+)
 from basic_pitch.data.datasets.guitarset import GuitarSetToTfExample
 from basic_pitch.data.pipeline import WriteBatchToTfRecord
 from basic_pitch.data.tf_example_deserialization import (
+    extract_random_window,
     prepare_datasets,
     prepare_visualization_datasets,
     sample_datasets,
@@ -89,6 +96,23 @@ def setup_test_resources(tmp_path: pathlib.Path) -> pathlib.Path:
     mock_and_process("validation", VALID_TRACK_ID)
 
     return output_home
+
+
+@pytest.mark.parametrize("n_samples", [100, AUDIO_N_SAMPLES - 1000, AUDIO_N_SAMPLES, AUDIO_N_SAMPLES + 5000])
+def test_extract_random_window_pads_a_track_shorter_than_the_window(n_samples: int) -> None:
+    n_frames = n_samples // 256 + 1
+    audio = tf.ones((n_samples, 1))
+    onsets = tf.ones((n_frames, N_FREQ_BINS_NOTES))
+    contour = tf.ones((n_frames, N_FREQ_BINS_CONTOURS))
+    notes = tf.ones((n_frames, N_FREQ_BINS_NOTES))
+
+    audio_window, onset_window, contour_window, note_window = extract_random_window(audio, onsets, contour, notes, None)
+
+    assert audio_window.shape == (AUDIO_N_SAMPLES, 1)
+    assert onset_window.shape == (ANNOT_N_FRAMES, N_FREQ_BINS_NOTES)
+    assert contour_window.shape == (ANNOT_N_FRAMES, N_FREQ_BINS_CONTOURS)
+    assert note_window.shape == (ANNOT_N_FRAMES, N_FREQ_BINS_NOTES)
+    assert int(tf.reduce_sum(tf.cast(audio_window != 0, tf.int32))) == min(n_samples, AUDIO_N_SAMPLES)
 
 
 def test_prepare_datasets(tmp_path: pathlib.Path, mock_guitarset_index: None) -> None:
