@@ -133,7 +133,7 @@ def main() -> None:
     parser.add_argument(
         "--debug-file",
         default=None,
-        help="Optional file for debug output for inference. It holds the data of one audio file, so only one is allowed.",
+        help="Optional file for debug output for inference. Only one audio file is allowed with it.",
     )
     parser.add_argument(
         "--no-melodia",
