@@ -233,7 +233,8 @@ def sonify_salience(
     """Sonify a salience matrix.
 
     Args:
-        gram: A matrix of pitch salience values with range 0-1, with shape (n_freqs, n_times).
+        gram: A matrix of pitch salience values with range 0-1, with shape (n_freqs, n_times),
+            where n_freqs is 88 times semitone_resolution.
             The frequencies are logarithmically spaced. The matrix is not modified.
         semitone_resolution: The number of bins per semitone in gram.
         save_path: Optional location to save the sonified salience.
@@ -242,6 +243,15 @@ def sonify_salience(
     Returns:
         A tuple of the sonified salience as an audio signal and the associated sample rate.
     """
+    if isinstance(semitone_resolution, bool) or not isinstance(semitone_resolution, (int, np.integer)):
+        raise ValueError(f"The semitone resolution must be a whole number of at least 1, got {semitone_resolution}.")
+    if semitone_resolution < 1:
+        raise ValueError(f"The semitone resolution must be a whole number of at least 1, got {semitone_resolution}.")
+    if gram.ndim != 2 or gram.shape[0] != ANNOTATIONS_N_SEMITONES * semitone_resolution:
+        raise ValueError(
+            f"The gram must have {ANNOTATIONS_N_SEMITONES * semitone_resolution} rows (88 semitones times "
+            f"{semitone_resolution} bins per semitone) and one column per time step, got shape {gram.shape}."
+        )
     freqs = librosa.core.cqt_frequencies(
         n_bins=ANNOTATIONS_N_SEMITONES * semitone_resolution,
         fmin=ANNOTATIONS_BASE_FREQUENCY,

@@ -676,3 +676,17 @@ def test_note_events_to_midi_rejects_a_pitch_that_a_midi_file_cannot_store(pitch
 @pytest.mark.parametrize("pitch", [0, 21, 60, 127, np.int64(60)])
 def test_note_events_to_midi_writes_a_file_for_pitches_in_the_midi_range(pitch: Any, tmp_path: pathlib.Path) -> None:
     note_events_to_midi([(0.0, 0.5, pitch, 0.8, None)]).write(str(tmp_path / "notes.mid"))
+
+
+@pytest.mark.parametrize("semitone_resolution", [0, -1, 1.5, "3", None, True])
+def test_sonify_salience_rejects_a_semitone_resolution_that_is_not_a_whole_number_of_at_least_1(
+    semitone_resolution: Any,
+) -> None:
+    with pytest.raises(ValueError, match="semitone resolution"):
+        sonify_salience(np.zeros((264, 4)), semitone_resolution)
+
+
+@pytest.mark.parametrize("shape", [(5,), (10, 10), (264, 4, 2), (88, 4)])
+def test_sonify_salience_rejects_a_gram_that_does_not_match_the_semitone_resolution(shape: Tuple[int, ...]) -> None:
+    with pytest.raises(ValueError, match="gram must have 264 rows"):
+        sonify_salience(np.zeros(shape), 3)
