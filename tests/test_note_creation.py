@@ -23,6 +23,7 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 import librosa
 import mido
 import numpy as np
+import numpy.typing as npt
 import pretty_midi
 import pytest
 from scipy.io import wavfile
@@ -81,7 +82,7 @@ def test_drop_overlapping_pitch_bends() -> None:
     assert sorted(result) == sorted(expected)
 
 
-def _single_note_activations() -> Tuple[np.ndarray, np.ndarray]:
+def _single_note_activations() -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     onsets = np.zeros((100, 88))
     frames = np.zeros((100, 88))
     frames[10:60, 40] = 0.9
@@ -249,7 +250,7 @@ def test_note_events_to_midi_emits_no_warnings_for_many_bent_notes() -> None:
         note_events_to_midi(events, multiple_pitch_bends=True)
 
 
-def _sustained_activation(peak: float, onset: float) -> Tuple[np.ndarray, np.ndarray]:
+def _sustained_activation(peak: float, onset: float) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     frames = np.zeros((100, 88))
     onsets = np.zeros((100, 88))
     frames[20:70, 40] = peak
@@ -482,7 +483,7 @@ def test_note_events_to_midi_with_notes_tied_on_start_end_pitch_and_amplitude() 
         assert not any(bend.pitch for bend in midi.instruments[0].pitch_bends)
 
 
-def _held_pitch_activations(n_frames: int = 41) -> Tuple[np.ndarray, np.ndarray]:
+def _held_pitch_activations(n_frames: int = 41) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     frames = np.zeros((n_frames, 88))
     onsets = np.zeros((n_frames, 88))
     frames[10:, 49] = 0.9
@@ -568,7 +569,7 @@ def test_find_onset_peaks_accepts_the_first_frame_and_ignores_silence() -> None:
     assert len(find_onset_peaks(np.zeros((0, 88)))[0]) == 0
 
 
-def _short_note_activation(length: int) -> Tuple[np.ndarray, np.ndarray]:
+def _short_note_activation(length: int) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     frames = np.zeros((100, 88))
     onsets = np.zeros((100, 88))
     frames[20 : 20 + length, 40] = 0.9
