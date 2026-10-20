@@ -44,6 +44,8 @@ class WriteBatchToTfRecord(beam.DoFn):
             element = [element]
 
         logging.info(f"Writing to file batch of length {len(element)}")
+        # gfile also creates directories on remote file systems, and does nothing when the directory exists
+        tf.io.gfile.makedirs(self.destination)
         # hopefully uuids are unique enough
         with tf.io.TFRecordWriter(os.path.join(self.destination, f"{uuid.uuid4()}.tfrecord")) as writer:
             for example in element:

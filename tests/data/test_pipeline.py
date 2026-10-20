@@ -65,6 +65,12 @@ def test_write_batch_to_tf_record(tmpdir: str) -> None:
     assert ex == example
 
 
+def test_write_batch_to_tf_record_creates_a_missing_destination_directory(tmpdir: str) -> None:
+    destination = os.path.join(tmpdir, "splits", "train")
+    WriteBatchToTfRecord(destination).process([tf.train.Example()])
+    assert len(os.listdir(destination)) == 1
+
+
 def test_transcription_dataset_writer(tmpdir: str) -> None:
     input_data = [(f"track{i}", ("train", "test", "validation")[i % 3]) for i in range(9)] + [("foo", "bar")]
     batch_size = 2
