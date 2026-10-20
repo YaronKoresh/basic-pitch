@@ -120,6 +120,9 @@ class TestCQT2010v2Options:
             ({"fmin": float("nan")}, "fmin must be a finite number above 0"),
             ({"fmax": float("inf")}, "fmax must be a finite number above 0"),
             ({"filter_scale": 0}, "filter_scale must be a finite number above 0"),
+            ({"output_format": "foo"}, "Unsupported output_format 'foo'"),
+            ({"output_format": ""}, "Unsupported output_format ''"),
+            ({"output_format": None}, "Unsupported output_format None"),
         ],
     )
     def test_options_that_cannot_work_raise_a_value_error(self, options: Dict[str, Any], message: str) -> None:
@@ -131,6 +134,26 @@ class TestCQT2010v2Options:
             **cast(Any, {"sr": np.float32(22050), "hop_length": np.int64(256), "n_bins": np.int32(36), "fmax": None})
         )
         assert layer.n_bins == 36
+
+
+class TestCQT2010v2OutputFormat:
+    @pytest.mark.parametrize(
+        "output_format, shape",
+        [
+            ("Magnitude", (1, 87, 36)),
+            ("magnitude", (1, 87, 36)),
+            ("Complex", (1, 36, 87, 2)),
+            ("PHASE", (1, 36, 87, 2)),
+        ],
+    )
+    def test_supported_formats_return_an_array_in_any_letter_case(
+        self, output_format: str, shape: Tuple[int, ...]
+    ) -> None:
+        layer = CQT2010v2(
+            sr=22050, hop_length=512, fmin=32.7, n_bins=36, bins_per_octave=36, output_format=output_format
+        )
+        output = layer(tf.random.normal((1, 44100)))
+        assert tuple(output.shape) == shape
 
 
 class TestCQT2010v2Config:

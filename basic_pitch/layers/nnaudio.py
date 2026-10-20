@@ -564,6 +564,9 @@ class CQT2010v2(tf.keras.layers.Layer):
             ):
                 raise ValueError(f"{name} must be a finite number above 0, got {positive}.")
 
+        if not isinstance(output_format, str) or output_format.lower() not in ("magnitude", "complex", "phase"):
+            raise ValueError(f"Unsupported output_format {output_format!r}. Must be 'Magnitude', 'Complex' or 'Phase'.")
+
         # build() replaces the sample rate, the hop length and earlydownsample by the values after downsampling,
         # so the arguments are kept for get_config
         self._init_sample_rate: Union[float, int] = sr
