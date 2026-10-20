@@ -37,6 +37,10 @@ DATASET_DICT = {
 }
 
 
+# the datasets that split their tracks with --train-percent, and whether they also use --validation-percent
+SPLIT_DATASETS = {"guitarset": True, "ikala": False, "medleydb_pitch": False}
+
+
 def main() -> None:
     dataset_parser = argparse.ArgumentParser()
     dataset_parser.add_argument(
@@ -55,6 +59,13 @@ def main() -> None:
     for arg in vars(known_args):
         logger.info(f"known_args:: {arg} = {getattr(known_args, arg)}")
     logger.info(f"pipeline_args = {pipeline_args}")
+    if dataset in SPLIT_DATASETS:
+        try:
+            commandline.verify_split_percents(
+                known_args.train_percent, known_args.validation_percent if SPLIT_DATASETS[dataset] else 0.0
+            )
+        except ValueError as error:
+            cl_parser.error(str(error))
     DATASET_DICT[dataset](known_args, pipeline_args)
 
 
