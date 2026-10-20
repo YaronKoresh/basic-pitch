@@ -206,7 +206,7 @@ where:
 - `.ogg`
 - `.wav`
 - `.flac`
-- `.m4a`
+- `.m4a` (and other formats that libsndfile does not read, which are decoded with [`ffmpeg`](https://ffmpeg.org/) when it is installed)
 
 **Mono Channel Audio Only**
 

@@ -21,6 +21,8 @@ import json
 import logging
 import os
 import pathlib
+import shutil
+import subprocess
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union, cast
 
 
@@ -241,6 +243,30 @@ def window_audio_file(
         yield np.expand_dims(window, axis=-1), window_time
 
 
+def load_audio(audio_path: Union[pathlib.Path, str]) -> npt.NDArray[np.float32]:
+    """Read an audio file as mono at AUDIO_SAMPLE_RATE.
+
+    librosa reads the formats that libsndfile knows. For any other format (such as .m4a), the file
+    is decoded with ffmpeg when it is installed, and the original librosa error is raised when it is not.
+    """
+    try:
+        audio, _ = librosa.load(str(audio_path), sr=AUDIO_SAMPLE_RATE, mono=True)
+        return cast(npt.NDArray[np.float32], audio)
+    except Exception as load_error:
+        ffmpeg = shutil.which("ffmpeg")
+        if ffmpeg is None:
+            raise
+        command = [ffmpeg, "-v", "error", "-nostdin", "-i", str(audio_path)]
+        command += ["-vn", "-f", "f32le", "-ac", "1", "-ar", str(AUDIO_SAMPLE_RATE), "-"]
+        try:
+            decoded = subprocess.run(command, capture_output=True, check=True).stdout
+        except (OSError, subprocess.SubprocessError):
+            raise load_error from None
+        if not decoded:
+            raise load_error from None
+        return np.frombuffer(decoded, dtype="<f4").astype(np.float32)
+
+
 def get_audio_input(
     audio_path: Union[pathlib.Path, str], overlap_len: int, hop_size: int
 ) -> Iterable[Tuple[npt.NDArray[np.float32], Dict[str, float], int]]:
@@ -259,7 +285,7 @@ def get_audio_input(
     if overlap_len % 2 != 0:
         raise ValueError(f"overlap_length must be even, got {overlap_len}")
 
-    audio_original, _ = librosa.load(str(audio_path), sr=AUDIO_SAMPLE_RATE, mono=True)
+    audio_original = load_audio(audio_path)
 
     original_length = audio_original.shape[0]
     audio_original = np.concatenate([np.zeros((int(overlap_len / 2),), dtype=np.float32), audio_original])

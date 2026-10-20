@@ -20,6 +20,8 @@ import faulthandler
 import json
 import os
 import pathlib
+import shutil
+import subprocess
 import tempfile
 from typing import Any, Dict, List, Tuple, cast
 from unittest import mock
@@ -304,6 +306,50 @@ def test_window_audio_file() -> None:
 def test_get_audio_input_rejects_an_odd_overlap_with_a_value_error() -> None:
     with pytest.raises(ValueError, match="must be even, got 3"):
         next(iter(inference.get_audio_input(RESOURCES_PATH / "vocadito_10.wav", 3, AUDIO_N_SAMPLES - 3)))
+
+
+def test_load_audio_decodes_a_format_librosa_cannot_read_with_ffmpeg(tmp_path: pathlib.Path) -> None:
+    audio = np.linspace(-0.5, 0.5, 1000, dtype="<f4")
+    completed = mock.Mock(stdout=audio.tobytes())
+    with mock.patch("librosa.load", side_effect=RuntimeError("Format not recognised")):
+        with mock.patch("shutil.which", return_value="/usr/bin/ffmpeg"):
+            with mock.patch("subprocess.run", return_value=completed) as run:
+                loaded = inference.load_audio(tmp_path / "song.m4a")
+    np.testing.assert_array_equal(loaded, audio)
+    assert loaded.dtype == np.float32
+    command = run.call_args[0][0]
+    assert command[0] == "/usr/bin/ffmpeg"
+    assert str(tmp_path / "song.m4a") in command
+    assert str(AUDIO_SAMPLE_RATE) in command
+
+
+def test_load_audio_raises_the_librosa_error_without_ffmpeg() -> None:
+    with mock.patch("librosa.load", side_effect=RuntimeError("Format not recognised")):
+        with mock.patch("shutil.which", return_value=None):
+            with pytest.raises(RuntimeError, match="Format not recognised"):
+                inference.load_audio("song.m4a")
+
+
+def test_load_audio_raises_the_librosa_error_when_ffmpeg_fails_or_decodes_nothing() -> None:
+    error = subprocess.CalledProcessError(1, "ffmpeg")
+    for run_result in ({"side_effect": error}, {"return_value": mock.Mock(stdout=b"")}):
+        with mock.patch("librosa.load", side_effect=RuntimeError("Format not recognised")):
+            with mock.patch("shutil.which", return_value="/usr/bin/ffmpeg"):
+                with mock.patch("subprocess.run", **run_result):
+                    with pytest.raises(RuntimeError, match="Format not recognised"):
+                        inference.load_audio("song.m4a")
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg is not installed")
+def test_load_audio_reads_an_m4a_file(tmp_path: pathlib.Path) -> None:
+    source = RESOURCES_PATH / "vocadito_10.wav"
+    m4a_path = tmp_path / "vocadito_10.m4a"
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(source), str(m4a_path)], check=True)
+    audio = inference.load_audio(m4a_path)
+    expected, _ = librosa.load(str(source), sr=AUDIO_SAMPLE_RATE, mono=True)
+    assert audio.dtype == np.float32
+    assert abs(len(audio) - len(expected)) < 2048
+    assert np.corrcoef(audio[: len(expected) - 2048], expected[: len(audio) - 2048][: len(expected) - 2048])[0, 1] > 0.9
 
 
 def test_get_audio_input() -> None:
