@@ -377,7 +377,19 @@ def note_events_to_midi(
         pretty_midi.PrettyMIDI() object
 
     """
-    for _, _, note_number, *_ in note_events_with_pitch_bends:
+    for start_time, end_time, note_number, *_ in note_events_with_pitch_bends:
+        if (
+            any(
+                isinstance(t, bool) or not isinstance(t, (int, float, np.integer, np.floating))
+                for t in (start_time, end_time)
+            )
+            or not 0 <= start_time <= end_time
+            or not math.isfinite(end_time)
+        ):
+            raise ValueError(
+                "The start and end time of a note must be finite numbers of seconds, with the start at least 0 "
+                f"and not after the end, got start {start_time} and end {end_time}."
+            )
         if (
             isinstance(note_number, bool)
             or not isinstance(note_number, (int, np.integer))

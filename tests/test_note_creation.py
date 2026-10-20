@@ -720,3 +720,19 @@ def test_model_output_to_notes_rejects_an_output_that_cannot_be_converted(change
     change(output)
     with pytest.raises(ValueError, match=message):
         model_output_to_notes(output, onset_thresh=0.5, frame_thresh=0.3)
+
+
+@pytest.mark.parametrize(
+    "start, end",
+    [(-1.0, 0.5), (-0.001, 0.5), (float("nan"), 0.5), (0.0, float("nan")), (float("inf"), 2.0), (0.0, float("inf"))]
+    + [(1.0, 0.5), ("0", 0.5), (0.0, None), (True, 2.0)],
+)
+def test_note_events_to_midi_rejects_note_times_that_a_midi_file_cannot_store(start: Any, end: Any) -> None:
+    with pytest.raises(ValueError, match="start and end time"):
+        note_events_to_midi([(start, end, 60, 0.8, None)])
+
+
+def test_note_events_to_midi_writes_a_note_that_starts_at_zero_and_one_with_equal_start_and_end(
+    tmp_path: pathlib.Path,
+) -> None:
+    note_events_to_midi([(0.0, 0.5, 60, 0.8, None), (1.0, 1.0, 62, 0.8, None)]).write(str(tmp_path / "notes.mid"))
