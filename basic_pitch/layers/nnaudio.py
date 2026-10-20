@@ -250,7 +250,8 @@ def get_cqt_complex(
             "padding with reflection mode might not be the best choice, try using constant padding",
             UserWarning,
         )
-        x = tf.pad(x, (cqt_kernels_real.shape[-1] // 2, cqt_kernels_real.shape[-1] // 2))
+        half_kernel = cqt_kernels_real.shape[-1] // 2
+        x = tf.pad(x, [[0, 0], [0, 0], [half_kernel, half_kernel]])
     CQT_real = tf.transpose(
         tf.nn.conv1d(
             tf.transpose(x, [0, 2, 1]),

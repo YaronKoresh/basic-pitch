@@ -21,6 +21,7 @@ from typing import Any, Tuple
 
 import numpy as np
 import pytest
+import tensorflow as tf
 
 from basic_pitch.layers.nnaudio import ConstantPad1D, ReflectionPad1D, get_window_dispatch, CQT2010v2
 
@@ -93,6 +94,16 @@ class TestCQT2010v2PadMode:
         layer = CQT2010v2(sr=22050, hop_length=256, pad_mode="symmetric")
         with pytest.raises(ValueError, match="Unsupported pad_mode"):
             layer.build(input_shape=(None, 22050))
+
+
+class TestCQT2010v2ShortInput:
+    def test_input_shorter_than_the_kernel_is_padded_with_zeros_and_warns(self) -> None:
+        layer = CQT2010v2(sr=22050, hop_length=256, fmin=32.7, n_bins=36, bins_per_octave=36)
+        with pytest.warns(UserWarning, match="constant padding"):
+            output = layer(tf.zeros((1, 22050)))
+        assert output.shape[0] == 1
+        assert output.shape[2] == 36
+        assert np.all(output.numpy() == 0)
 
 
 class TestPad1D:
