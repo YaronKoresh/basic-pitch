@@ -17,7 +17,7 @@
 
 import warnings
 
-from typing import Any, Tuple
+from typing import Any, Dict, Tuple
 
 import numpy as np
 import pytest
@@ -94,6 +94,36 @@ class TestCQT2010v2PadMode:
         layer = CQT2010v2(sr=22050, hop_length=256, pad_mode="symmetric")
         with pytest.raises(ValueError, match="Unsupported pad_mode"):
             layer.build(input_shape=(None, 22050))
+
+
+class TestCQT2010v2Options:
+    @pytest.mark.parametrize(
+        "options, message",
+        [
+            ({"n_bins": 0}, "n_bins must be a whole number of at least 1"),
+            ({"n_bins": -5}, "n_bins must be a whole number of at least 1"),
+            ({"n_bins": 36.5}, "n_bins must be a whole number of at least 1"),
+            ({"bins_per_octave": 0}, "bins_per_octave must be a whole number of at least 1"),
+            ({"bins_per_octave": -12}, "bins_per_octave must be a whole number of at least 1"),
+            ({"hop_length": 0}, "hop_length must be a whole number of at least 1"),
+            ({"hop_length": -256}, "hop_length must be a whole number of at least 1"),
+            ({"hop_length": True}, "hop_length must be a whole number of at least 1"),
+            ({"sr": 0}, "sr must be a finite number above 0"),
+            ({"sr": -22050}, "sr must be a finite number above 0"),
+            ({"fmin": 0}, "fmin must be a finite number above 0"),
+            ({"fmin": -5.0}, "fmin must be a finite number above 0"),
+            ({"fmin": float("nan")}, "fmin must be a finite number above 0"),
+            ({"fmax": float("inf")}, "fmax must be a finite number above 0"),
+            ({"filter_scale": 0}, "filter_scale must be a finite number above 0"),
+        ],
+    )
+    def test_options_that_cannot_work_raise_a_value_error(self, options: Dict[str, Any], message: str) -> None:
+        with pytest.raises(ValueError, match=message):
+            CQT2010v2(**options)
+
+    def test_numpy_numbers_and_no_fmax_are_accepted(self) -> None:
+        layer = CQT2010v2(sr=np.float32(22050), hop_length=np.int64(256), n_bins=np.int32(36), fmax=None)
+        assert layer.n_bins == 36
 
 
 class TestCQT2010v2Config:

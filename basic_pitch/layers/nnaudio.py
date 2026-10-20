@@ -19,6 +19,8 @@
 # https://github.com/KinWaiCheuk/nnAudio
 # The above code is released under an MIT license.
 
+import math
+import numbers
 import warnings
 import tensorflow as tf
 import numpy as np
@@ -540,6 +542,24 @@ class CQT2010v2(tf.keras.layers.Layer):
         **kwargs: Any,
     ):
         super().__init__(**kwargs)
+
+        for name, whole_number in (
+            ("hop_length", hop_length),
+            ("n_bins", n_bins),
+            ("bins_per_octave", bins_per_octave),
+        ):
+            if isinstance(whole_number, bool) or not isinstance(whole_number, numbers.Integral) or whole_number < 1:
+                raise ValueError(f"{name} must be a whole number of at least 1, got {whole_number}.")
+        for name, positive in (("sr", sr), ("fmin", fmin), ("fmax", fmax), ("filter_scale", filter_scale)):
+            if name == "fmax" and positive is None:
+                continue
+            if (
+                isinstance(positive, bool)
+                or not isinstance(positive, numbers.Real)
+                or not math.isfinite(positive)
+                or positive <= 0
+            ):
+                raise ValueError(f"{name} must be a finite number above 0, got {positive}.")
 
         # build() replaces the sample rate, the hop length and earlydownsample by the values after downsampling,
         # so the arguments are kept for get_config
