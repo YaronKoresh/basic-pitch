@@ -133,7 +133,7 @@ def main() -> None:
     parser.add_argument(
         "--debug-file",
         default=None,
-        help="Optional file for debug output for inference.",
+        help="Optional file for debug output for inference. It holds the data of one audio file, so only one is allowed.",
     )
     parser.add_argument(
         "--no-melodia",
@@ -191,7 +191,7 @@ def main() -> None:
     audio_path_list = [pathlib.Path(audio_path) for audio_path in args.audio_paths]
     try:
         verify_output_dir(output_dir)
-        verify_debug_file(args.debug_file)
+        verify_debug_file(args.debug_file, len(audio_path_list))
         for audio_path in audio_path_list:
             verify_input_path(audio_path)
         if args.save_midi or args.sonify_midi or args.save_model_outputs or args.save_note_events:

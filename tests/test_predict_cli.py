@@ -155,3 +155,22 @@ def test_debug_file_that_is_a_directory_exits_with_usage_error(
             run_main(monkeypatch, tmpdir, str(RESOURCES_PATH / "vocadito_10.wav"), "--debug-file", tmpdir)
     assert exit_info.value.code == 2
     assert "is a directory" in capsys.readouterr().err
+
+
+def test_debug_file_with_several_audio_files_exits_with_usage_error(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        debug_file = pathlib.Path(tmpdir) / "debug.json"
+        with pytest.raises(SystemExit) as exit_info:
+            run_main(
+                monkeypatch,
+                tmpdir,
+                str(RESOURCES_PATH / "vocadito_10.wav"),
+                str(RESOURCES_PATH / "vocadito_14.wav"),
+                "--debug-file",
+                str(debug_file),
+            )
+        assert not debug_file.exists()
+    assert exit_info.value.code == 2
+    assert "debug data of one audio file" in capsys.readouterr().err

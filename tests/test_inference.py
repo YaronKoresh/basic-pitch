@@ -552,3 +552,27 @@ def test_documented_arguments_of_the_public_functions_exist_in_their_signature(f
     documented = re.findall(r"^ {4}(\w+):", arguments_section.group(1), re.MULTILINE)
     assert documented
     assert set(documented) <= set(inspect.signature(function).parameters)
+
+
+def test_verify_debug_file_rejects_more_than_one_audio_file_that_would_overwrite_it(tmp_path: pathlib.Path) -> None:
+    inference.verify_debug_file(tmp_path / "debug.json", 1)
+    inference.verify_debug_file(None, 3)
+    with pytest.raises(ValueError, match="debug data of one audio file"):
+        inference.verify_debug_file(tmp_path / "debug.json", 2)
+
+
+def test_predict_and_save_rejects_a_debug_file_for_several_audio_files_before_processing(
+    tmp_path: pathlib.Path,
+) -> None:
+    with pytest.raises(ValueError, match="debug data of one audio file"):
+        inference.predict_and_save(
+            [RESOURCES_PATH / "vocadito_10.wav", RESOURCES_PATH / "vocadito_14.wav"],
+            tmp_path,
+            True,
+            False,
+            False,
+            False,
+            ICASSP_2022_MODEL_PATH,
+            debug_file=tmp_path / "debug.json",
+        )
+    assert list(tmp_path.iterdir()) == []

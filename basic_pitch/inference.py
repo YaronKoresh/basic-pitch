@@ -393,17 +393,26 @@ def verify_output_dir(output_dir: Union[pathlib.Path, str]) -> None:
         raise ValueError(f"🚨 {output_dir} is not a directory.")
 
 
-def verify_debug_file(debug_file: Optional[Union[pathlib.Path, str]]) -> None:
+def verify_debug_file(debug_file: Optional[Union[pathlib.Path, str]], audio_file_count: int = 1) -> None:
     """Verify that a debug file can be written, before any audio is processed
 
     Args:
         debug_file: Path to the debug file, or None when no debug output is requested.
+        audio_file_count: The number of audio files that are processed. The debug file holds the data of one audio
+            file, so each further file would overwrite it.
 
     Raises:
-        ValueError: If the debug file is a directory or its directory does not exist.
+        ValueError: If the debug file is a directory, its directory does not exist,
+            or more than one audio file is processed.
     """
     if debug_file is None:
         return
+
+    if audio_file_count > 1:
+        raise ValueError(
+            f"🚨 The debug file holds the debug data of one audio file, but {audio_file_count} audio files were "
+            "given, so each would overwrite the debug data of the one before. Process one audio file at a time."
+        )
 
     if os.path.isdir(debug_file):
         raise ValueError(f"🚨 {debug_file} is a directory, not a debug file path.")
@@ -651,7 +660,7 @@ def predict_and_save(
     )
 
     verify_output_dir(output_directory)
-    verify_debug_file(debug_file)
+    verify_debug_file(debug_file, len(audio_path_list))
     verify_unique_output_names(audio_path_list)
 
     # load the model once for all the audio files, and fail before processing any if it cannot be loaded
