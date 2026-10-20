@@ -256,7 +256,8 @@ def get_audio_input(
             length of original audio file, in frames, BEFORE padding.
 
     """
-    assert overlap_len % 2 == 0, f"overlap_length must be even, got {overlap_len}"
+    if overlap_len % 2 != 0:
+        raise ValueError(f"overlap_length must be even, got {overlap_len}")
 
     audio_original, _ = librosa.load(str(audio_path), sr=AUDIO_SAMPLE_RATE, mono=True)
 

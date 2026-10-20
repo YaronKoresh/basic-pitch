@@ -301,6 +301,11 @@ def test_window_audio_file() -> None:
     np.testing.assert_equal(audio[:AUDIO_N_SAMPLES], np.squeeze(audio_windowed[0]))
 
 
+def test_get_audio_input_rejects_an_odd_overlap_with_a_value_error() -> None:
+    with pytest.raises(ValueError, match="must be even, got 3"):
+        next(iter(inference.get_audio_input(RESOURCES_PATH / "vocadito_10.wav", 3, AUDIO_N_SAMPLES - 3)))
+
+
 def test_get_audio_input() -> None:
     test_audio_path = RESOURCES_PATH / "vocadito_10.wav"
     audio, _ = librosa.load(str(test_audio_path), sr=AUDIO_SAMPLE_RATE, mono=True)
