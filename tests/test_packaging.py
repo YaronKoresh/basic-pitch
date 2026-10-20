@@ -19,8 +19,10 @@ import configparser
 import pathlib
 import re
 import shlex
+import shutil
 import subprocess
 import sys
+import zipfile
 from typing import Any, Dict, List
 
 import pytest
@@ -190,3 +192,23 @@ def test_build_requirements_do_not_include_cython_because_the_package_has_no_ext
     requires = {Requirement(requirement).name.lower() for requirement in _pyproject()["build-system"]["requires"]}
     assert "cython" not in requires
     assert not list(PYPROJECT.parent.rglob("*.pyx"))
+
+
+def test_building_the_wheel_has_no_package_warnings_and_includes_the_models(tmp_path: pathlib.Path) -> None:
+    root = PYPROJECT.parent
+    source = tmp_path / "source"
+    source.mkdir()
+    for name in ("pyproject.toml", "setup.py", "README.md", "LICENSE", "NOTICE", "MANIFEST.in", "tox.ini"):
+        shutil.copy(root / name, source / name)
+    shutil.copytree(root / "basic_pitch", source / "basic_pitch", ignore=shutil.ignore_patterns("__pycache__"))
+    code = "from setuptools import build_meta\nbuild_meta.build_wheel('dist')\n"
+    result = subprocess.run([sys.executable, "-c", code], cwd=source, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert "packages` configuration" not in result.stdout + result.stderr
+
+    (wheel,) = (source / "dist").glob("*.whl")
+    with zipfile.ZipFile(wheel) as archive:
+        names = archive.namelist()
+    assert "basic_pitch/saved_models/icassp_2022/nmp/saved_model.pb" in names
+    assert "basic_pitch/saved_models/icassp_2022/nmp.onnx" in names
+    assert not [name for name in names if name.startswith("tests/")]

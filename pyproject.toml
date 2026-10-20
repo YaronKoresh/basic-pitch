@@ -47,8 +47,8 @@ license = { file = "LICENSE" }
 
 [tool.setuptools.packages.find]
 where = ["."]
-exclude = ["tests"]
-namespaces = false
+include = ["basic_pitch*"]
+namespaces = true
 
 [project.scripts]
 basic-pitch = "basic_pitch.predict:main"
