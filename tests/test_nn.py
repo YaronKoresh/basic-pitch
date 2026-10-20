@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Iterator, List, Tuple
+from typing import Any, Iterator, List, Tuple
 import unittest
 
 import numpy as np
@@ -153,6 +153,28 @@ class TestHarmonicStackingEdgeCases(unittest.TestCase):
             with self.subTest(harmonics=harmonics):
                 with self.assertRaisesRegex(ValueError, "harmonics must be finite numbers above 0"):
                     nn.HarmonicStacking(3, harmonics, 10)
+
+    def test_invalid_harmonic_stacking_options_raise_value_error(self) -> None:
+        cases: List[Tuple[Any, List[Any], Any, str]] = [
+            (3, [], 10, "At least one harmonic"),
+            (3, [True], 10, "harmonics must be finite numbers above 0"),
+            (3, ["a"], 10, "harmonics must be finite numbers above 0"),
+            (3, [1, 2], 0, "n_output_freqs must be a whole number of at least 1"),
+            (3, [1, 2], -3, "n_output_freqs must be a whole number of at least 1"),
+            (3, [1, 2], 2.5, "n_output_freqs must be a whole number of at least 1"),
+            (0, [1, 2], 10, "bins_per_semitone must be a whole number of at least 1"),
+            (-3, [1, 2], 10, "bins_per_semitone must be a whole number of at least 1"),
+            (2.5, [1, 2], 10, "bins_per_semitone must be a whole number of at least 1"),
+            (True, [1, 2], 10, "bins_per_semitone must be a whole number of at least 1"),
+        ]
+        for bins_per_semitone, harmonics, n_output_freqs, message in cases:
+            with self.subTest(bins=bins_per_semitone, harmonics=harmonics, outputs=n_output_freqs):
+                with self.assertRaisesRegex(ValueError, message):
+                    nn.HarmonicStacking(bins_per_semitone, harmonics, n_output_freqs)
+
+    def test_numpy_integers_are_accepted_as_stacking_sizes(self) -> None:
+        layer = nn.HarmonicStacking(np.int64(3), [0.5, 1, np.float32(2)], np.int32(10))
+        self.assertEqual(layer.n_output_freqs, 10)
 
 
 class TestLossFunctions(unittest.TestCase):

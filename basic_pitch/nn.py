@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import math
+import numbers
 from typing import Any, List
 
 import tensorflow as tf
@@ -47,8 +48,18 @@ class HarmonicStacking(tf.keras.layers.Layer):
     ):
         """Downsample frequency by stride, upsample channels by 4."""
         super().__init__(trainable=False, name=name)
+        for name, value in (("bins_per_semitone", bins_per_semitone), ("n_output_freqs", n_output_freqs)):
+            if isinstance(value, bool) or not isinstance(value, numbers.Integral) or value < 1:
+                raise ValueError(f"{name} must be a whole number of at least 1, got {value}.")
+        if len(harmonics) == 0:
+            raise ValueError("At least one harmonic is needed, got an empty list.")
         for harmonic in harmonics:
-            if not math.isfinite(harmonic) or harmonic <= 0:
+            if (
+                isinstance(harmonic, bool)
+                or not isinstance(harmonic, numbers.Real)
+                or not math.isfinite(harmonic)
+                or harmonic <= 0
+            ):
                 raise ValueError(f"The harmonics must be finite numbers above 0, got {harmonic}.")
         self.bins_per_semitone = bins_per_semitone
         self.harmonics = harmonics
