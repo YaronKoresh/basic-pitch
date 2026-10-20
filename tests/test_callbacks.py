@@ -15,7 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+
 import numpy as np
+import pytest
 import tensorflow as tf
 
 from typing import Dict
@@ -67,3 +70,37 @@ def test_visualize_callback_on_epoch_end(tmpdir: str) -> None:
     vc.model = MockModel()
 
     vc.on_epoch_end(1, {"loss": np.random.random(), "val_loss": np.random.random()})
+
+
+def make_callback(tmpdir: str, train_ds: tf.data.Dataset, validation_ds: tf.data.Dataset) -> VisualizeCallback:
+    vc = VisualizeCallback(
+        train_ds=train_ds,
+        validation_ds=validation_ds,
+        tensorboard_dir=str(tmpdir),
+        sonify=False,
+        contours=True,
+    )
+    vc.model = MockModel()
+    return vc
+
+
+def test_visualize_callback_starts_a_dataset_that_ran_out_again(tmpdir: str) -> None:
+    # a dataset with one batch and no repeat is empty after the first epoch
+    vc = make_callback(tmpdir, create_mock_dataset(), create_mock_dataset())
+    logs = {"loss": 0.5, "val_loss": 0.6}
+
+    vc.on_epoch_end(1, logs)
+    vc.on_epoch_end(2, logs)
+    vc.on_epoch_end(3, logs)
+
+
+def test_visualize_callback_warns_instead_of_failing_when_a_dataset_has_no_examples(
+    tmpdir: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    empty_ds = create_mock_dataset().take(0)
+    vc = make_callback(tmpdir, empty_ds, create_mock_dataset())
+
+    with caplog.at_level(logging.WARNING):
+        vc.on_epoch_end(1, {"loss": 0.5, "val_loss": 0.6})
+
+    assert "no visualization is made" in caplog.text
