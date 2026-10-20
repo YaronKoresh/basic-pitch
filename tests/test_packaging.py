@@ -219,6 +219,7 @@ def test_every_console_script_points_to_a_function_that_can_be_imported() -> Non
     scripts = _project()["scripts"]
     assert {"basic-pitch", "bp-download", "bp-train"} <= set(scripts)
     pytest.importorskip("tensorflow")
+    pytest.importorskip("apache_beam")
     for target in scripts.values():
         module, function = target.split(":")
         assert callable(getattr(importlib.import_module(module), function))
