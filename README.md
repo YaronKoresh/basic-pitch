@@ -94,7 +94,7 @@ Optionally, you may append any of the following flags to your prediction command
 
 - `--sonify-midi` to additionally save a `.wav` audio rendering of the MIDI file.
 - `--save-model-outputs` to additionally save raw model outputs as an NPZ file.
-- `--save-note-events` to additionally save the predicted note events as a CSV file.
+- `--save-note-events` to additionally save the predicted note events as a CSV file. Each row holds `start_time_s`, `end_time_s`, `pitch_midi`, `velocity` and `pitch_bend`; the pitch bend values of a note are separated by spaces in the single `pitch_bend` column.
 - `--no-save-midi` to skip the MIDI file, e.g. when you only want the note events or the model outputs.
 - `--keep-harmonics` to keep the weaker notes that sound an octave (or 19 or 24 semitones) above a note starting at the same time. By default these overtones are dropped.
 

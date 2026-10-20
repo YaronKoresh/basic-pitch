@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import csv
 import faulthandler
 import json
 import os
@@ -306,6 +307,20 @@ def test_save_note_events_keeps_velocity_in_midi_range(tmp_path: pathlib.Path) -
     inference.save_note_events([(0.0, 1.0, 60, 1.2, None), (1.0, 2.0, 62, -0.1, None)], path)
     rows = path.read_text().strip().splitlines()[1:]
     assert [int(row.split(",")[3]) for row in rows] == [127, 1]
+
+
+def test_save_note_events_writes_pitch_bends_in_a_single_column(tmp_path: pathlib.Path) -> None:
+    path = tmp_path / "events.csv"
+    inference.save_note_events(
+        [(0.0, 1.0, 60, 0.5, [1, -2, 3]), (1.0, 2.0, 62, 0.5, None), (2.0, 3.0, 64, 0.5, [])], path
+    )
+    with open(path, newline="") as f:
+        rows = list(csv.reader(f))
+    assert rows[0] == ["start_time_s", "end_time_s", "pitch_midi", "velocity", "pitch_bend"]
+    assert all(len(row) == 5 for row in rows)
+    assert rows[1][4] == "1 -2 3"
+    assert rows[2][4] == ""
+    assert rows[3][4] == ""
 
 
 def test_predict_and_save_rejects_audio_files_that_share_an_output_name() -> None:
