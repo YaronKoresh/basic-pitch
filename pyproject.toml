@@ -53,6 +53,7 @@ namespaces = true
 [project.scripts]
 basic-pitch = "basic_pitch.predict:main"
 bp-download = "basic_pitch.data.download:main"
+bp-train = "basic_pitch.train:console_entry_point"
 
 [project.optional-dependencies]
 data = [

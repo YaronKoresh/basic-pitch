@@ -17,6 +17,7 @@
 
 import configparser
 import pathlib
+import importlib
 import re
 import shlex
 import shutil
@@ -212,3 +213,17 @@ def test_building_the_wheel_has_no_package_warnings_and_includes_the_models(tmp_
     assert "basic_pitch/saved_models/icassp_2022/nmp/saved_model.pb" in names
     assert "basic_pitch/saved_models/icassp_2022/nmp.onnx" in names
     assert not [name for name in names if name.startswith("tests/")]
+
+
+def test_every_console_script_points_to_a_function_that_can_be_imported() -> None:
+    scripts = _project()["scripts"]
+    assert {"basic-pitch", "bp-download", "bp-train"} <= set(scripts)
+    pytest.importorskip("tensorflow")
+    for target in scripts.values():
+        module, function = target.split(":")
+        assert callable(getattr(importlib.import_module(module), function))
+
+
+def test_the_data_readme_explains_how_to_run_the_training_command() -> None:
+    readme = (PYPROJECT.parent / "basic_pitch" / "data" / "README.md").read_text()
+    assert "bp-train" in readme
