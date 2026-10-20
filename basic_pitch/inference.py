@@ -635,6 +635,8 @@ def predict_and_save(
     if isinstance(audio_path_list, (str, os.PathLike)):
         # a single path is a list of one path, not a list of its characters
         audio_path_list = [audio_path_list]
+    if len(audio_path_list) == 0:
+        raise ValueError("No audio file was given, so there is nothing to predict.")
 
     infer.verify_outputs_requested(save_midi, sonify_midi, save_model_outputs, save_notes)
     if sonify_midi:

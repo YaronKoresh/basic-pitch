@@ -399,6 +399,25 @@ def test_predict_and_save_rejects_a_call_that_saves_nothing(tmp_path: pathlib.Pa
     assert list(tmp_path.iterdir()) == []
 
 
+def test_predict_and_save_rejects_an_empty_audio_list_before_loading_the_model(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    loads = []
+    monkeypatch.setattr(inference.Model, "__init__", lambda self, model_path: loads.append(model_path))
+    with pytest.raises(ValueError, match="No audio file"):
+        inference.predict_and_save(
+            [],
+            tmp_path,
+            True,
+            False,
+            False,
+            False,
+            model_or_model_path=ICASSP_2022_MODEL_PATH,
+        )
+    assert loads == []
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_predict_and_save_rejects_a_missing_output_directory_before_processing(tmp_path: pathlib.Path) -> None:
     missing_dir = tmp_path / "missing"
     with pytest.raises(ValueError, match="does not exist"):
