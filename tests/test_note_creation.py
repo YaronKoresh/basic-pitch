@@ -41,6 +41,7 @@ from basic_pitch.note_creation import (
     output_to_notes_polyphonic,
     sonify_salience,
     suppress_harmonic_notes,
+    verify_note_options,
 )
 
 
@@ -597,3 +598,32 @@ def test_note_events_to_midi_writes_lowest_and_high_tempos(tmp_path: pathlib.Pat
     for tempo in (3.58, 120, 1000):
         midi = note_events_to_midi([(0.0, 60.0, 60, 0.5, [0, 3, 0])], midi_tempo=tempo)
         midi.write(str(tmp_path / "tempo.mid"))
+
+
+@pytest.mark.parametrize("bad", ["0.5", None, True, [0.5], b"1"])
+@pytest.mark.parametrize(
+    "position, name",
+    [
+        (0, "onset threshold"),
+        (1, "frame threshold"),
+        (2, "minimum note length"),
+        (3, "minimum frequency"),
+        (4, "maximum frequency"),
+        (5, "MIDI tempo"),
+        (6, "melodia peak threshold"),
+        (7, "note peak threshold"),
+    ],
+)
+def test_verify_note_options_rejects_values_that_are_not_numbers_with_a_value_error(
+    bad: object, position: int, name: str
+) -> None:
+    arguments: list = [0.5, 0.3, 116.0, 100.0, 1000.0, 120, 0.5, 0.4]
+    if bad is None and position in (3, 4):
+        return  # None means no frequency limit
+    arguments[position] = bad
+    with pytest.raises(ValueError, match=name):
+        verify_note_options(*arguments)
+
+
+def test_verify_note_options_accepts_numpy_numbers() -> None:
+    verify_note_options(np.float32(0.5), np.float64(0.3), np.int64(116), np.float32(100), np.int32(1000), np.int64(120))

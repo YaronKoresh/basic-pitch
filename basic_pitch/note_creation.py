@@ -55,6 +55,11 @@ MIDI_MAX_TEMPO_MICROSECONDS = 0xFFFFFF  # a MIDI tempo event stores the microsec
 MIDI_MAX_TICK = 10_000_000  # pretty_midi treats a file with a later event as corrupt
 
 
+def _is_number(value: object) -> bool:
+    """True for ints and floats (also numpy ones), but not for bools, strings or None."""
+    return isinstance(value, (int, float, np.integer, np.floating)) and not isinstance(value, bool)
+
+
 def verify_note_options(
     onset_thresh: float,
     frame_thresh: float,
@@ -72,16 +77,16 @@ def verify_note_options(
         ("melodia peak threshold", melodia_peak_thresh),
         ("note peak threshold", note_peak_thresh),
     ):
-        if not math.isfinite(value) or not 0 <= value <= 1:
+        if not _is_number(value) or not math.isfinite(value) or not 0 <= value <= 1:
             raise ValueError(f"The {name} must be a number between 0 and 1, got {value}.")
-    if not math.isfinite(min_note_len) or min_note_len < 0:
+    if not _is_number(min_note_len) or not math.isfinite(min_note_len) or min_note_len < 0:
         raise ValueError(f"The minimum note length must be a number of at least 0, got {min_note_len}.")
     for name, value in (("minimum frequency", min_freq), ("maximum frequency", max_freq)):
-        if value is not None and (not math.isfinite(value) or value <= 0):
+        if value is not None and (not _is_number(value) or not math.isfinite(value) or value <= 0):
             raise ValueError(f"The {name} must be a number above 0 Hz, got {value}.")
     if min_freq is not None and max_freq is not None and min_freq > max_freq:
         raise ValueError(f"The minimum frequency ({min_freq}) must not be above the maximum frequency ({max_freq}).")
-    if not math.isfinite(midi_tempo) or midi_tempo <= 0:
+    if not _is_number(midi_tempo) or not math.isfinite(midi_tempo) or midi_tempo <= 0:
         raise ValueError(f"The MIDI tempo must be a number above 0, got {midi_tempo}.")
     if not 1 <= round(MICROSECONDS_PER_MINUTE / midi_tempo) <= MIDI_MAX_TEMPO_MICROSECONDS:
         raise ValueError(
