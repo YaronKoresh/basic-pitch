@@ -121,3 +121,11 @@ def test_main_rejects_a_source_without_dataset_files_before_building_the_model(t
                 0.5,
             )
     build_model.assert_not_called()
+
+
+@pytest.mark.parametrize("requested", range(1, 51))
+def test_evaluation_callback_batching_covers_exactly_the_requested_examples(requested: int) -> None:
+    batch_size, steps = train.evaluation_callback_batching(requested)
+
+    assert 1 <= batch_size <= train.MAX_EVAL_CBF_BATCH_SIZE
+    assert batch_size * steps == requested

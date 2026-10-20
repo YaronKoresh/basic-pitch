@@ -20,7 +20,7 @@ import os
 import logging
 import math
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import tensorflow as tf
@@ -31,6 +31,26 @@ from basic_pitch.constants import DATASET_SAMPLING_FREQUENCY
 from basic_pitch.data import tf_example_deserialization
 
 logging.basicConfig(level=logging.INFO)
+
+MAX_EVAL_CBF_BATCH_SIZE = 4
+
+
+def evaluation_callback_batching(size_evaluation_callback_datasets: int) -> Tuple[int, int]:
+    """Split the number of visualization examples into batches.
+
+    Args:
+        size_evaluation_callback_datasets: the number of examples the visualization callback goes through.
+
+    Returns:
+        A batch size of at most MAX_EVAL_CBF_BATCH_SIZE and a number of batches, whose product is exactly
+        the requested number of examples.
+    """
+    batch_size = max(
+        size
+        for size in range(1, min(size_evaluation_callback_datasets, MAX_EVAL_CBF_BATCH_SIZE) + 1)
+        if size_evaluation_callback_datasets % size == 0
+    )
+    return batch_size, size_evaluation_callback_datasets // batch_size
 
 
 def main(
@@ -111,14 +131,14 @@ def main(
         dataset_sampling_frequency,
     )
 
-    MAX_EVAL_CBF_BATCH_SIZE = 4
+    visualization_batch_size, visualization_steps = evaluation_callback_batching(size_evaluation_callback_datasets)
     (
         train_visualization_ds,
         validation_visualization_ds,
     ) = tf_example_deserialization.prepare_visualization_datasets(
         source,
-        batch_size=min(size_evaluation_callback_datasets, MAX_EVAL_CBF_BATCH_SIZE),
-        validation_steps=max(1, size_evaluation_callback_datasets // MAX_EVAL_CBF_BATCH_SIZE),
+        batch_size=visualization_batch_size,
+        validation_steps=visualization_steps,
         datasets_to_use=datasets_to_use,
         dataset_sampling_frequency=dataset_sampling_frequency,
     )
