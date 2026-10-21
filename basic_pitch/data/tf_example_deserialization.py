@@ -220,7 +220,7 @@ def sample_datasets(
 
     Args:
         split: whether to use training or validation data
-        dataset_base_path: directory storing source datasets as tfrecord files
+        datasets_base_path: directory storing source datasets as tfrecord files
         datasets: names of datasets to sample from e.g. guitarset
         dataset_sampling_frequency: distribution weighting vector corresponding to datasets determining how they
             are sampled from during training / validation dataset creation.
@@ -288,7 +288,7 @@ def transcription_file_generator(
     Args:
         split: data split to build generator from
         dataset_names: list of dataset_names to use
-        dataset_base_path: directory storing source datasets as tfrecord files
+        datasets_base_path: directory storing source datasets as tfrecord files
         sample_weights: distribution weighting vector corresponding to datasets determining how they
             are sampled from during training / validation dataset creation.
     """
@@ -512,7 +512,7 @@ def reduce_transcription_inputs(
     This will error if the sample rate of the wav file is different from
     what we hard code.
     Args:
-        fid : file id (string)
+        file_id : file id (string)
         src : name of dataset (string)
         wav : tensorflow wav object (tuple of audio and sample rate)
             The whole audio file length
@@ -520,7 +520,7 @@ def reduce_transcription_inputs(
             possibly size 0
         onsets : matrix of note onsets (n_frames x N_FREQ_BINS_NOTES)
             possibly size 0
-        contours : matrix of contour frames (n_frames x N_FREQ_BINS_CONTOURS)
+        contour : matrix of contour frames (n_frames x N_FREQ_BINS_CONTOURS)
             possibly size 0
     """
     audio, sample_rate = wav
@@ -574,7 +574,7 @@ def get_sample_weights(
             possibly size 0
         onsets : matrix of note onsets (n_frames x N_FREQ_BINS_NOTES)
             possibly size 0
-        contours : matrix of contour frames (n_frames x N_FREQ_BINS_CONTOURS)
+        contour : matrix of contour frames (n_frames x N_FREQ_BINS_CONTOURS)
             possibly size 0
         metadata : dictionary of metadata
     Returns:
@@ -660,6 +660,7 @@ def extract_window(
         onsets: note onsets of audio signal
         contour: pitch on off of audio signal
         notes: note on off of audio signal
+        t_start: start time of the window, in seconds
 
     Returns:
         tuple of windows of each of the inputs
@@ -692,7 +693,8 @@ def extract_random_window(
         audio : audio signal (full length)
         notes : matrix of note frames (n_frames x N_FREQ_BINS_NOTES)
         onsets : matrix of note onsets (n_frames x N_FREQ_BINS_NOTES)
-        contours : matrix of contour frames (n_frames x N_FREQ_BINS_CONTOURS)
+        contour : matrix of contour frames (n_frames x N_FREQ_BINS_CONTOURS)
+        seed : seed of the random start time, or None for a different start time every time
     Returns:
         audio : audio signal (AUDIO_WINDOW_LENGTH * AUDIO_SAMPLE_RATE, 1)
         notes : matrix of note frames (AUDIO_SAMPLE_RATE * ANNOTATIONS_FPS, N_FREQ_BINS_NOTES)
@@ -734,11 +736,12 @@ def get_transcription_chunks(
         audio : audio signal (full length)
         notes : matrix of note frames (n_frames x N_FREQ_BINS_NOTES)
         onsets : matrix of note onsets (n_frames x N_FREQ_BINS_NOTES)
-        contours : matrix of contour frames (n_frames x N_FREQ_BINS_CONTOURS)
+        contour : matrix of contour frames (n_frames x N_FREQ_BINS_CONTOURS)
         onset_weight : int (0 or 1)
         note_weight : int (0 or 1)
         contour_weight : int (0 or 1)
         n_samples_per_track : int - how many samples to yield per track
+        seed : bool - if True, the random start time of sample i is seeded with i, so the samples repeat
     Returns:
         batches of size n_samples_per_track of:
             audio : audio signal (AUDIO_WINDOW_LENGTH * AUDIO_SAMPLE_RATE, 1)

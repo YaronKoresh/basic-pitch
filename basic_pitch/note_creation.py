@@ -166,12 +166,13 @@ def model_output_to_notes(
     Args:
         output: A dictionary with shape
             {
-                'frame': array of shape (n_times, n_freqs),
+                'note': array of shape (n_times, n_freqs),
                 'onset': array of shape (n_times, n_freqs),
                 'contour': array of shape (n_times, 3*n_freqs)
             }
             representing the output of the basic pitch model.
         onset_thresh: Minimum amplitude of an onset activation to be considered an onset.
+        frame_thresh: Minimum amplitude of a frame activation for a note to remain "on".
         infer_onsets: If True, add additional onsets when there are large differences in frame amplitudes.
         min_note_len: The minimum allowed note length in frames.
         min_freq: Minimum allowed output frequency, in Hz. If None, all frequencies are used.
@@ -187,7 +188,8 @@ def model_output_to_notes(
 
     Returns:
         midi : pretty_midi.PrettyMIDI object
-        note_events: A list of note event tuples (start_time_s, end_time_s, pitch_midi, amplitude)
+        note_events: A list of note event tuples (start_time_s, end_time_s, pitch_midi, amplitude, pitch_bends),
+            where pitch_bends is a list of pitch bends, or None when the note has none.
     """
     verify_note_options(
         onset_thresh,
