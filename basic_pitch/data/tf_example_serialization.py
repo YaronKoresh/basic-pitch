@@ -88,18 +88,26 @@ def to_transcription_tfexample(
     notes_onsets_shape: Tuple[int, int],
     contours_shape: Tuple[int, int],
 ) -> tf.train.Example:
-    """
-    - `file_id` string
-    - `source` string  (e.g., "maestro")
-    - `audio_file_path` path to a local WAV file (must be 22.05kHz mono, checked)
-    - `notes_indices` [(time, freq)], integers
-    - `notes_values` [float]
-    - `onsets_indices` same as above
-    - `onsets_values` same as above
-    - `contours_indices` same as above
-    - `contours_values` same as above
-    - `notes_onsets_shape` (time, freq), ints
-    - `contours_onsets_shape` (time, freq), ints
+    """Create the tf.train.Example of one track, with its audio and its sparse annotations.
+
+    Args:
+        file_id: id of the track.
+        source: name of the dataset the track is from (e.g., "maestro").
+        audio_wav_file_path: path to a local WAV file (must be 22.05kHz mono, checked).
+        notes_indices: [(time, freq)] indices of the active note frames, integers.
+        notes_values: [float] values of the note frames at those indices.
+        onsets_indices: indices of the note onsets, same as notes_indices.
+        onsets_values: values of the note onsets at those indices.
+        contours_indices: indices of the active contour frames, same as notes_indices.
+        contours_values: values of the contour frames at those indices.
+        notes_onsets_shape: (time, freq) shape of the dense notes and onsets matrices, ints.
+        contours_shape: (time, freq) shape of the dense contours matrix, ints.
+
+    Returns:
+        The tf.train.Example, with the audio of the WAV file as bytes.
+
+    Raises:
+        ValueError: If the WAV file is not 22.05kHz mono.
     """
     sample_rate = sox.file_info.sample_rate(audio_wav_file_path)
     channels = sox.file_info.channels(audio_wav_file_path)

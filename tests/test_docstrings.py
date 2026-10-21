@@ -26,8 +26,11 @@ FUNCTIONS_WITH_ARGS_SECTION: List[Callable[..., Any]] = [note_creation.model_out
 
 try:
     from basic_pitch.data import tf_example_deserialization as deserialization
+    from basic_pitch.data import tf_example_serialization as serialization
 
     FUNCTIONS_WITH_ARGS_SECTION += [
+        serialization.to_transcription_tfexample,
+        deserialization.transcription_dataset,
         deserialization.sample_datasets,
         deserialization.transcription_file_generator,
         deserialization.reduce_transcription_inputs,
@@ -58,3 +61,14 @@ def test_model_output_to_notes_docstring_names_the_note_array_and_five_field_not
     assert "'note'" in docstring
     assert "'frame'" not in docstring
     assert "pitch_bends" in docstring.split("Returns:")[1]
+
+
+def test_transcription_dataset_docstring_names_the_target_and_weight_keys_of_the_dataset_it_returns() -> None:
+    pytest.importorskip("tensorflow")
+    from basic_pitch.data import tf_example_deserialization as deserialization
+
+    docstring = deserialization.transcription_dataset.__doc__ or ""
+    for key in ("onset", "contour", "note"):
+        assert f"'{key}'" in docstring
+    for old_key in ("'contours'", "'notes'", "'onsets'", "fpaths_in"):
+        assert old_key not in docstring

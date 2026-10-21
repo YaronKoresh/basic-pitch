@@ -363,13 +363,20 @@ def combine_transcription_examples(
 def transcription_dataset(
     file_generator: Callable[[], Iterator[str]], n_samples_per_track: int, random_seed: bool
 ) -> tf.data.Dataset:
-    """
-    `fpaths_in` is a list of .tfrecords files
-    return a tf.Dataset with the following fields (as tuple):
-        - audio (shape AUDIO_N_SAMPLES, 1)
-        - {'contours': contours, 'notes': notes, 'onsets': onsets}
-    contours has shape (ANNOT_N_FRAMES, N_FREQ_BINS_CONTOURS)
-    notes and onsets have shape: (ANNOT_N_FRAMES, N_FREQ_BINS_NOTES)
+    """Create the dataset of the training examples of the tracks that a file generator gives.
+
+    Args:
+        file_generator: function that returns an iterator of paths to .tfrecords files.
+        n_samples_per_track: the number of samples to take from a track.
+        random_seed: if True, the random start time of sample i of a track is seeded with i, so the samples repeat.
+
+    Returns:
+        A tf.data.Dataset with the following elements, as a tuple:
+            - audio (shape AUDIO_N_SAMPLES, 1)
+            - targets: {'onset': onset, 'contour': contour, 'note': note}
+            - weights: {'onset': onset_weight, 'contour': contour_weight, 'note': note_weight}
+        contour has shape (ANNOT_N_FRAMES, N_FREQ_BINS_CONTOURS)
+        note and onset have shape: (ANNOT_N_FRAMES, N_FREQ_BINS_NOTES)
     """
     ds = tf.data.Dataset.from_generator(file_generator, output_types=tf.string, output_shapes=())
     ds = tf.data.TFRecordDataset(ds)
