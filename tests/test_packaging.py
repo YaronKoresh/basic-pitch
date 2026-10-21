@@ -228,3 +228,12 @@ def test_every_console_script_points_to_a_function_that_can_be_imported() -> Non
 def test_the_data_readme_explains_how_to_run_the_training_command() -> None:
     readme = (PYPROJECT.parent / "basic_pitch" / "data" / "README.md").read_text()
     assert "bp-train" in readme
+
+
+def test_numpy_minimum_has_numpy_typing_ndarray() -> None:
+    # numpy.typing.NDArray, used in annotations all over the package, exists since numpy 1.21
+    numpy_requirements = [Requirement(r) for r in _project()["dependencies"] if Requirement(r).name == "numpy"]
+    assert numpy_requirements
+    for requirement in numpy_requirements:
+        assert not requirement.specifier.contains("1.20.3")
+        assert requirement.specifier.contains("1.21.0")

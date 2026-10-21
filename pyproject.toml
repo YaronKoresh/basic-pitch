@@ -24,7 +24,7 @@ dependencies = [
 	"coremltools; platform_system == 'Darwin'",
 	"librosa>=0.8.0",
 	"mir_eval>=0.6.0",
-	"numpy>=1.18",
+	"numpy>=1.21",
 	"onnxruntime; python_version >= '3.12' or (platform_system == 'Windows' and python_version < '3.11')",
 	"pretty_midi>=0.2.9",
 	"resampy>=0.2.2,<0.4.3; python_version < '3.12'",
