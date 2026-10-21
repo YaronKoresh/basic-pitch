@@ -14,13 +14,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import argparse
 import os
 import pathlib
-from typing import List
+from typing import Any, Dict, List
+from unittest import mock
 
 import apache_beam as beam
 from apache_beam.testing.test_pipeline import TestPipeline
 
+from basic_pitch.data import commandline, pipeline
+from basic_pitch.data.datasets import maestro
 from basic_pitch.data.datasets.maestro import (
     MaestroToTfExample,
     MaestroInvalidTracks,
@@ -142,3 +146,47 @@ def test_maestro_create_input_data(mock_maestro_index: None) -> None:
     test_fnames = {TRAIN_TRACK_ID, VALID_TRACK_ID, TEST_TRACK_ID, GT_15M_TRACK_ID}
     splits = {d[1] for d in data if d[0].split(".")[0] in test_fnames}
     assert splits == set(["train", "validation", "test"])
+
+
+def _maestro_known_args(source: pathlib.Path, destination: pathlib.Path) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    commandline.add_default(parser, "maestro")
+    commandline.add_split(parser)
+    known_args, _ = parser.parse_known_args(
+        ["--source", str(source), "--destination", str(destination), "--batch-size", "1"]
+    )
+    return known_args
+
+
+def test_maestro_main_does_not_ask_for_a_docker_environment(tmp_path: pathlib.Path, mock_maestro_index: None) -> None:
+    """The default DirectRunner runs in this process, so the options must not ask Beam to start a Docker container."""
+    captured: Dict[str, Any] = {}
+
+    def fake_run(pipeline_options: Dict[str, Any], *args: Any) -> None:
+        captured.update(pipeline_options)
+
+    with mock.patch.object(pipeline, "run", side_effect=fake_run):
+        maestro.main(_maestro_known_args(tmp_path / "source", tmp_path / "destination"), [])
+
+    assert captured["runner"] == "DirectRunner"
+    assert "environment_type" not in captured
+
+
+def test_maestro_main_writes_the_splits(tmp_path: pathlib.Path, mock_maestro_index: None) -> None:
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    (source / "2004").mkdir(parents=True)
+    track_name = TRAIN_TRACK_ID.split("/")[1]
+    create_mock_wav(source / "2004" / f"{track_name}.wav", 1)
+    create_mock_midi(source / "2004" / f"{track_name}.midi")
+
+    # the mock index lists more tracks than the one that has files here
+    with mock.patch.object(maestro, "create_input_data", return_value=[(TRAIN_TRACK_ID, "train")]):
+        maestro.main(_maestro_known_args(source, destination), [])
+
+    splits = destination / "splits"
+    for split in ("train", "test", "validation"):
+        assert (splits / split / "index.csv").is_file()
+    assert len(list((splits / "train").glob("*.tfrecord"))) == 1
+    assert not list((splits / "test").glob("*.tfrecord"))
+    assert not list((splits / "validation").glob("*.tfrecord"))
