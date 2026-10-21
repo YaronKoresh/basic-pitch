@@ -709,7 +709,7 @@ def test_verify_model_output_accepts_a_matching_output_and_an_empty_one() -> Non
 @pytest.mark.parametrize(
     "change, message",
     [
-        (lambda output: output.pop("contour"), 'needs the "contour" array'),
+        (lambda output: output.pop("note"), 'needs the "note" array'),
         (lambda output: output.update(note=np.zeros(10)), '"note" must be an array of shape \\(n_times, 88\\)'),
         (lambda output: output.update(onset=np.zeros((10, 80))), '"onset" must be an array of shape \\(n_times, 88\\)'),
         (lambda output: output.update(contour=[[0] * 264] * 10), '"contour" must be an array of shape'),
@@ -744,3 +744,15 @@ def test_note_events_to_midi_docstring_names_every_parameter_of_its_signature() 
     documented = (note_events_to_midi.__doc__ or "").split("Args:")[1].split("Returns:")[0]
     for name in inspect.signature(note_events_to_midi).parameters:
         assert f"{name} :" in documented or f"{name}:" in documented, name
+
+
+def test_model_output_to_notes_without_a_contour_array_gives_notes_without_pitch_bends() -> None:
+    output = _model_output(60)
+    del output["contour"]
+    output["onset"][5, 40] = 1.0
+    output["note"][5:50, 40] = 0.9
+    midi_data, note_events = model_output_to_notes(output, onset_thresh=0.5, frame_thresh=0.3)
+    assert [event[2] for event in note_events] == [40 + 21]
+    assert [event[4] for event in note_events] == [None]
+    assert len(midi_data.instruments[0].notes) == 1
+    assert midi_data.instruments[0].pitch_bends == []

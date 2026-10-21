@@ -253,7 +253,7 @@ def model(
             the model (see the comment below), so the value has no effect.
         n_filters_onsets: Number of filters for the onsets convolutional layer.
         n_filters_notes: Number of filters for the notes convolutional layer.
-        no_contours: Whether or not to include contours in the output.
+        no_contours: If True, the model has no "contour" output, only "note" and "onset".
     """
     verify_n_harmonics(n_harmonics)
     verify_n_filters(
@@ -370,6 +370,8 @@ def model(
         name=onset_name,
     )(x_onset)
 
-    outputs = {"onset": x_onset, "contour": x_contours, "note": x_notes}
+    outputs = {"onset": x_onset, "note": x_notes}
+    if not no_contours:
+        outputs["contour"] = x_contours
 
     return tf.keras.Model(inputs=inputs, outputs=outputs)

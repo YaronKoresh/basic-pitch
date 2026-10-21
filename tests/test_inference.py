@@ -699,3 +699,15 @@ def test_predict_rejects_a_missing_audio_file_with_a_clear_error(tmp_path: pathl
 def test_predict_rejects_a_directory_as_audio_with_a_clear_error(tmp_path: pathlib.Path) -> None:
     with pytest.raises(ValueError, match="is not a file"):
         inference.predict(tmp_path, mock.MagicMock(spec=inference.Model))
+
+
+def test_predict_with_a_model_without_a_contour_output_gives_notes_without_pitch_bends() -> None:
+    model = mock.MagicMock(spec=inference.Model)
+    model.predict.side_effect = lambda audio: {
+        "note": np.full((1, 172, ANNOTATIONS_N_SEMITONES), 0.9, dtype=np.float32),
+        "onset": np.zeros((1, 172, ANNOTATIONS_N_SEMITONES), dtype=np.float32),
+    }
+    model_output, _, note_events = inference.predict(RESOURCES_PATH / "vocadito_10.wav", model)
+    assert set(model_output) == {"note", "onset"}
+    assert model_output["note"].shape[1] == ANNOTATIONS_N_SEMITONES
+    assert all(event[4] is None for event in note_events)

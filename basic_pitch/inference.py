@@ -355,10 +355,10 @@ def run_inference(
     overlap_len = n_overlapping_frames * FFT_HOP
     hop_size = AUDIO_N_SAMPLES - overlap_len
 
-    output: Dict[str, Any] = {"note": [], "onset": [], "contour": []}
+    output: Dict[str, Any] = {}
     for audio_windowed, _, audio_original_length in get_audio_input(audio_path, overlap_len, hop_size):
         for k, v in model.predict(audio_windowed).items():
-            output[k].append(v)
+            output.setdefault(k, []).append(v)
 
     unwrapped_output = {
         k: unwrap_output(np.concatenate(output[k]), audio_original_length, n_overlapping_frames, hop_size)

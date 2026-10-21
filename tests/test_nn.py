@@ -246,6 +246,10 @@ class TestLossFunctions(unittest.TestCase):
 
 
 class TestModelNoContours(unittest.TestCase):
+    def test_model_no_contours_has_only_note_and_onset_outputs(self) -> None:
+        self.assertEqual(set(models.model(no_contours=True).output_names), {"note", "onset"})
+        self.assertEqual(set(models.model().output_names), {"note", "onset", "contour"})
+
     def test_model_no_contours_compiles_with_loss_no_contour(self) -> None:
         m = models.model(no_contours=True)
         loss = models.loss_no_contour()

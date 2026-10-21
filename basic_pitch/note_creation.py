@@ -125,14 +125,16 @@ def verify_outputs_requested(save_midi: bool, sonify_midi: bool, save_model_outp
 def verify_model_output(output: Dict[str, npt.NDArray[Any]]) -> None:
     """Raise a ValueError if the model output cannot be converted to notes.
 
-    The output needs the arrays "note" and "onset" with one column for each of the piano keys, and "contour" with
-    one column for each contour bin, all with the same number of time steps.
+    The output needs the arrays "note" and "onset" with one column for each of the piano keys. The "contour" array,
+    with one column for each contour bin, is optional (a model trained with --no-contours has none), and all
+    arrays need the same number of time steps.
     """
     expected_columns = {
         "note": ANNOTATIONS_N_SEMITONES,
         "onset": ANNOTATIONS_N_SEMITONES,
-        "contour": N_FREQ_BINS_CONTOURS,
     }
+    if "contour" in output:  # a model trained without contours has none, and its notes get no pitch bends
+        expected_columns["contour"] = N_FREQ_BINS_CONTOURS
     for key, columns in expected_columns.items():
         if key not in output:
             raise ValueError(f'The model output needs the "{key}" array, got only {sorted(output)}.')
@@ -168,7 +170,7 @@ def model_output_to_notes(
             {
                 'note': array of shape (n_times, n_freqs),
                 'onset': array of shape (n_times, n_freqs),
-                'contour': array of shape (n_times, 3*n_freqs)
+                'contour': array of shape (n_times, 3*n_freqs), optional: without it, notes get no pitch bends
             }
             representing the output of the basic pitch model.
         onset_thresh: Minimum amplitude of an onset activation to be considered an onset.
@@ -206,7 +208,7 @@ def model_output_to_notes(
 
     frames = output["note"]
     onsets = output["onset"]
-    contours = output["contour"]
+    contours = output.get("contour")
 
     estimated_notes = output_to_notes_polyphonic(
         frames,
@@ -222,12 +224,12 @@ def model_output_to_notes(
         note_peak_thresh=note_peak_thresh,
         suppress_harmonics=suppress_harmonics,
     )
-    if include_pitch_bends:
+    if include_pitch_bends and contours is not None:
         estimated_notes_with_pitch_bend = get_pitch_bends(contours, estimated_notes)
     else:
         estimated_notes_with_pitch_bend = [(note[0], note[1], note[2], note[3], None) for note in estimated_notes]
 
-    times_s = model_frames_to_time(contours.shape[0] + 1)
+    times_s = model_frames_to_time(frames.shape[0] + 1)
     estimated_notes_time_seconds = [
         (times_s[note[0]], times_s[note[1]], note[2], note[3], note[4]) for note in estimated_notes_with_pitch_bend
     ]

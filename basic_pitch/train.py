@@ -54,6 +54,24 @@ def evaluation_callback_batching(size_evaluation_callback_datasets: int) -> Tupl
     return batch_size, size_evaluation_callback_datasets // batch_size
 
 
+def drop_contour_targets(dataset: tf.data.Dataset) -> tf.data.Dataset:
+    """Remove the contour targets and sample weights of a dataset, for a model that has no contour output.
+
+    Args:
+        dataset: a dataset of (audio, targets, sample weights), the last two being dictionaries.
+
+    Returns:
+        The dataset with only the targets and the sample weights of the other outputs.
+    """
+    return dataset.map(
+        lambda audio, targets, weights: (
+            audio,
+            {name: value for name, value in targets.items() if name != "contour"},
+            {name: value for name, value in weights.items() if name != "contour"},
+        )
+    )
+
+
 def main(
     source: str,
     output: str,
@@ -131,6 +149,10 @@ def main(
         datasets_to_use,
         dataset_sampling_frequency,
     )
+
+    if no_contours:
+        train_ds = drop_contour_targets(train_ds)
+        validation_ds = drop_contour_targets(validation_ds)
 
     visualization_batch_size, visualization_steps = evaluation_callback_batching(size_evaluation_callback_datasets)
     (
