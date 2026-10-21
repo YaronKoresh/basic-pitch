@@ -15,15 +15,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import apache_beam as beam
+import argparse
 import itertools
 import os
 import pathlib
 import shutil
 
 from typing import List, Tuple
+from unittest import mock
 
 from apache_beam.testing.test_pipeline import TestPipeline
 
+from basic_pitch.data import commandline
+from basic_pitch.data.datasets import slakh
 from basic_pitch.data.datasets.slakh import (
     SlakhFilterInvalidTracks,
     SlakhToTfExample,
@@ -179,3 +183,30 @@ def test_create_input_data(mock_slakh_index: None) -> None:
     data = create_input_data()
     for _, group in itertools.groupby(data, lambda el: el[1]):
         assert len(list(group))
+
+
+def _known_args(source: pathlib.Path, destination: pathlib.Path) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    commandline.add_default(parser, "slakh")
+    commandline.add_split(parser)
+    known_args, _ = parser.parse_known_args(
+        ["--source", str(source), "--destination", str(destination), "--batch-size", "1"]
+    )
+    return known_args
+
+
+def test_slakh_main_writes_the_splits(tmp_path: pathlib.Path, mock_slakh_index: None) -> None:
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    input_data: List[Tuple[str, str]] = [(TRAIN_PIANO_TRACK_ID, "train"), (VALID_PIANO_TRACK_ID, "validation")]
+    create_mock_input_data(source / "slakh2100_flac_redux", input_data)
+
+    with mock.patch.object(slakh, "create_input_data", return_value=input_data):
+        slakh.main(_known_args(source, destination), [])
+
+    splits = destination / "splits"
+    for split in ("train", "test", "validation"):
+        assert (splits / split / "index.csv").is_file()
+    for split in ("train", "validation"):
+        assert len(list((splits / split).glob("*.tfrecord"))) == 1
+    assert not list((splits / "test").glob("*.tfrecord"))

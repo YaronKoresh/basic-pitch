@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import apache_beam as beam
+import argparse
 import io
 import itertools
 import numpy as np
@@ -25,10 +26,13 @@ import pytest
 import soundfile as sf
 import tensorflow as tf
 from typing import Any
+from unittest import mock
 
 from apache_beam.testing.test_pipeline import TestPipeline
 
 from basic_pitch.constants import AUDIO_SAMPLE_RATE
+from basic_pitch.data import commandline
+from basic_pitch.data.datasets import medleydb_pitch
 from basic_pitch.data.datasets.medleydb_pitch import (
     MedleyDbPitchInvalidTracks,
     MedleyDbPitchToTfExample,
@@ -127,3 +131,28 @@ def test_medleydb_create_input_data(mock_medleydb_pitch_index: None) -> None:
 def test_create_input_data_overallocate() -> None:
     with pytest.raises(ValueError, match="over allocate"):
         create_input_data(train_percent=1.1)
+
+
+def _known_args(source: pathlib.Path, destination: pathlib.Path) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    commandline.add_default(parser, "medleydb_pitch")
+    commandline.add_split(parser)
+    known_args, _ = parser.parse_known_args(
+        ["--source", str(source), "--destination", str(destination), "--batch-size", "1"]
+    )
+    return known_args
+
+
+def test_medleydb_pitch_main_writes_the_splits(tmp_path: pathlib.Path, mock_medleydb_pitch_index: None) -> None:
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    _write_medleydb_pitch_track(source)
+
+    with mock.patch.object(medleydb_pitch, "create_input_data", return_value=[(TRACK_ID, "validation")]):
+        medleydb_pitch.main(_known_args(source, destination), [])
+
+    splits = destination / "splits"
+    for split in ("train", "test", "validation"):
+        assert (splits / split / "index.csv").is_file()
+    assert len(list((splits / "validation").glob("*.tfrecord"))) == 1
+    assert not list((splits / "train").glob("*.tfrecord"))
